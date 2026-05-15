@@ -65,6 +65,10 @@ class Aggregator {
         ? sizes.reduce((a, b) => a + b, 0) / sizes.length
         : null;
 
+      const lat_avg = n > 0
+        ? bucket.durations.reduce((a, b) => a + b, 0) / n
+        : null;
+
       rows.push({
         bucket_ts: bucketTs,
         route: bucket.route,
@@ -78,6 +82,7 @@ class Aggregator {
         lat_p50: percentile(sorted, 0.50),
         lat_p90: percentile(sorted, 0.90),
         lat_p99: percentile(sorted, 0.99),
+        lat_avg,
         lat_min: sorted[0] ?? 0,
         lat_max: sorted[n - 1] ?? 0,
         bytes_avg,
