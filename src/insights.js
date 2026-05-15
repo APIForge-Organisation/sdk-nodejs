@@ -1,27 +1,19 @@
 'use strict';
 
-const DEAD_ENDPOINT_DAYS = 21;
-const REGRESSION_THRESHOLD = 0.20; // 20% worse P90 triggers regression insight
-const ANOMALY_Z_THRESHOLD = 2.5;   // Z-score threshold for latency anomaly
+const DEAD_ENDPOINT_DAYS    = 21;
+const REGRESSION_THRESHOLD  = 0.20;  // 20% worse P90 triggers regression insight
+const ANOMALY_Z_THRESHOLD   = 2.5;   // Z-score threshold for latency anomaly
+const DRIFT_SLOPE_THRESHOLD = 5;     // ms/day above which progressive drift is reported
+const DRIFT_MIN_DAYS        = 7;     // minimum number of daily data points required
 
 function getInsights(db) {
   const insights = [];
 
-  try {
-    insights.push(...detectLatencyAnomalies(db));
-  } catch (_) {}
-
-  try {
-    insights.push(...detectDeadEndpoints(db));
-  } catch (_) {}
-
-  try {
-    insights.push(...detectReleaseRegressions(db));
-  } catch (_) {}
-
-  try {
-    insights.push(...detectUntrackedRoutes(db));
-  } catch (_) {}
+  try { insights.push(...detectLatencyAnomalies(db));  } catch (_) {}
+  try { insights.push(...detectDeadEndpoints(db));      } catch (_) {}
+  try { insights.push(...detectReleaseRegressions(db)); } catch (_) {}
+  try { insights.push(...detectUntrackedRoutes(db));    } catch (_) {}
+  try { insights.push(...detectDrift(db));              } catch (_) {}
 
   return insights;
 }
@@ -33,7 +25,7 @@ function detectUntrackedRoutes(db) {
     severity: 'info',
     route: r.route,
     method: r.method,
-    message: `\`${r.method} ${r.route}\` est déclaré dans l'application mais n'a reçu aucune requête depuis le début du monitoring.`,
+    message: `\`${r.method} ${r.route}\` is declared but has received no requests since monitoring started.`,
     data: { first_seen_ts: r.first_seen },
   }));
 }
@@ -69,7 +61,7 @@ function detectLatencyAnomalies(db) {
         severity: 'warning',
         route: r.route,
         method: r.method,
-        message: `La latence P99 de \`${r.method} ${r.route}\` est anormalement élevée cette heure (${fmt(r.avg_p99)} vs moyenne ${fmt(mean)} — Z-score ${z.toFixed(1)}).`,
+        message: `\`${r.method} ${r.route}\` P99 latency is abnormally high this hour (${fmt(r.avg_p99)} vs baseline ${fmt(mean)} — Z-score ${z.toFixed(1)}).`,
         data: { current_p99: r.avg_p99, baseline_p99: mean, z_score: z },
       });
     }
@@ -87,7 +79,7 @@ function detectDeadEndpoints(db) {
       severity: 'info',
       route: row.route,
       method: row.method,
-      message: `\`${row.method} ${row.route}\` n'a reçu aucune requête depuis ${daysSince} jours. Candidat à la déprécation.`,
+      message: `\`${row.method} ${row.route}\` has received no requests in ${daysSince} days. Consider deprecating this endpoint.`,
       data: { last_seen_ts: row.last_seen, inactive_days: daysSince },
     };
   });
@@ -115,7 +107,7 @@ function detectReleaseRegressions(db) {
         severity: 'error',
         route: a.route,
         method: a.method,
-        message: `La latence P90 de \`${a.method} ${a.route}\` a augmenté de ${pct(delta)} depuis le déploiement ${release_tag}. Avant : ${fmt(b.avg_p90)} — Après : ${fmt(a.avg_p90)}.`,
+        message: `\`${a.method} ${a.route}\` P90 increased by ${pct(delta)} after ${release_tag}. Before: ${fmt(b.avg_p90)} — After: ${fmt(a.avg_p90)}.`,
         data: {
           release: release_tag,
           before_p90: b.avg_p90,
@@ -129,7 +121,7 @@ function detectReleaseRegressions(db) {
         severity: 'success',
         route: a.route,
         method: a.method,
-        message: `Le déploiement ${release_tag} a amélioré \`${a.method} ${a.route}\` de ${pct(-delta)}. Avant : ${fmt(b.avg_p90)} — Après : ${fmt(a.avg_p90)}.`,
+        message: `${release_tag} improved \`${a.method} ${a.route}\` by ${pct(-delta)}. Before: ${fmt(b.avg_p90)} — After: ${fmt(a.avg_p90)}.`,
         data: {
           release: release_tag,
           before_p90: b.avg_p90,
@@ -138,6 +130,53 @@ function detectReleaseRegressions(db) {
         },
       });
     }
+  }
+
+  return insights;
+}
+
+function detectDrift(db) {
+  const rows = db.getDriftData();
+  if (rows.length === 0) return [];
+
+  // Group daily P90 samples by endpoint
+  const byEndpoint = new Map();
+  for (const row of rows) {
+    const key = `${row.method}|${row.route}`;
+    if (!byEndpoint.has(key)) byEndpoint.set(key, { method: row.method, route: row.route, points: [] });
+    byEndpoint.get(key).points.push({ x: row.day_bucket, y: row.p90 });
+  }
+
+  const insights = [];
+  for (const { method, route, points } of byEndpoint.values()) {
+    if (points.length < DRIFT_MIN_DAYS) continue;
+
+    // Ordinary least squares on (day_index, p90) pairs
+    const x0  = points[0].x;
+    const xs   = points.map(p => p.x - x0);
+    const ys   = points.map(p => p.y);
+    const n    = xs.length;
+    const sumX  = xs.reduce((a, b) => a + b, 0);
+    const sumY  = ys.reduce((a, b) => a + b, 0);
+    const sumXY = xs.reduce((s, x, i) => s + x * ys[i], 0);
+    const sumX2 = xs.reduce((s, x) => s + x * x, 0);
+    const denom = n * sumX2 - sumX * sumX;
+    if (denom === 0) continue;
+
+    const slope = (n * sumXY - sumX * sumY) / denom;
+    if (slope < DRIFT_SLOPE_THRESHOLD) continue;
+
+    const observedDays  = xs[xs.length - 1];
+    const projection30  = Math.round(slope * 30);
+
+    insights.push({
+      type:     'DRIFT',
+      severity: 'warning',
+      route,
+      method,
+      message:  `\`${method} ${route}\` has been progressively degrading for ${observedDays} day${observedDays !== 1 ? 's' : ''}: +${slope.toFixed(1)}ms/day. 30-day projection: +${projection30}ms.`,
+      data: { slope_ms_per_day: slope, observed_days: observedDays, projection_30d_ms: projection30 },
+    });
   }
 
   return insights;

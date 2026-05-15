@@ -286,6 +286,21 @@ class ApiForgeDatabase {
     `).all();
   }
 
+  // Returns one row per (route, method, day) for the last 30 days, used by drift detection
+  getDriftData() {
+    const since30d = nowSec() - 30 * 86_400;
+    return this.db.prepare(`
+      SELECT
+        route, method,
+        CAST(bucket_ts / 86400 AS INTEGER) as day_bucket,
+        AVG(lat_p90) as p90
+      FROM api_metrics
+      WHERE bucket_ts >= ? AND lat_p90 IS NOT NULL
+      GROUP BY route, method, day_bucket
+      ORDER BY route, method, day_bucket
+    `).all(since30d);
+  }
+
   getGlobalTimeSeries(hours = 24) {
     const since = nowSec() - hours * 3600;
     return this.db.prepare(`

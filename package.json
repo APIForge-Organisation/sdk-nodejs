@@ -1,6 +1,6 @@
 {
   "name": "apiforgejs",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "API observability & intelligence SDK for Express.js — local-first, privacy-first",
   "main": "src/index.js",
   "keywords": [
@@ -18,15 +18,11 @@
   "author": "APIForge",
   "license": "MIT",
   "scripts": {
-    "test": "node --test test/**/*.test.js",
-    "test:smoke": "node --test test/smoke.test.js"
+    "tests": "node --test tests/**/*.test.js",
+    "test:smoke": "node --test tests/smoke.test.js"
   },
   "engines": {
     "node": ">=22.5.0"
-  },
-  "dependencies": {
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0"
   },
   "peerDependencies": {
     "express": ">=4.0.0"
