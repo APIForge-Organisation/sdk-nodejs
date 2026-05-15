@@ -44,19 +44,23 @@ class ApiForgeDatabase {
         lat_p90     REAL,
         lat_p99     REAL,
         lat_min     REAL,
-        lat_max     REAL
+        lat_max     REAL,
+        bytes_avg   REAL
       );
       CREATE INDEX IF NOT EXISTS idx_route_ts  ON api_metrics (route, method, bucket_ts);
       CREATE INDEX IF NOT EXISTS idx_bucket_ts ON api_metrics (bucket_ts);
       CREATE INDEX IF NOT EXISTS idx_release   ON api_metrics (release_tag) WHERE release_tag IS NOT NULL;
     `);
 
+    // Migration for databases created before bytes_avg was introduced
+    try { this.db.exec('ALTER TABLE api_metrics ADD COLUMN bytes_avg REAL'); } catch (_) {}
+
     this._stmtInsert = this.db.prepare(`
       INSERT INTO api_metrics
         (bucket_ts, route, method, env, release_tag,
          status_2xx, status_4xx, status_5xx, total_calls,
-         lat_p50, lat_p90, lat_p99, lat_min, lat_max)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         lat_p50, lat_p90, lat_p99, lat_min, lat_max, bytes_avg)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     this._begin    = this.db.prepare('BEGIN');
@@ -71,7 +75,7 @@ class ApiForgeDatabase {
         this._stmtInsert.run(
           r.bucket_ts, r.route, r.method, r.env, r.release_tag ?? null,
           r.status_2xx, r.status_4xx, r.status_5xx, r.total_calls,
-          r.lat_p50, r.lat_p90, r.lat_p99, r.lat_min, r.lat_max
+          r.lat_p50, r.lat_p90, r.lat_p99, r.lat_min, r.lat_max, r.bytes_avg ?? null
         );
       }
       this._commit.run();
@@ -131,7 +135,8 @@ class ApiForgeDatabase {
         AVG(lat_p50)     as p50,
         AVG(lat_p90)     as p90,
         AVG(lat_p99)     as p99,
-        MAX(lat_max)     as lat_max
+        MAX(lat_max)     as lat_max,
+        AVG(bytes_avg)   as bytes_avg
       FROM api_metrics
       WHERE bucket_ts >= ?
       GROUP BY route, method

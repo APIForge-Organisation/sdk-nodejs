@@ -25,6 +25,7 @@ function insertRow(db, overrides = {}) {
     lat_p99: 99,
     lat_min: 10,
     lat_max: 150,
+    bytes_avg: null,
   };
   db.insertBatch([{ ...defaults, ...overrides }]);
 }
@@ -196,6 +197,24 @@ describe('ApiForgeDatabase', () => {
       insertRow(db, { bucket_ts: Math.floor(Date.now() / 1000) - 60 });
       const rows = db.getGlobalTimeSeries(24);
       assert.ok(rows.length >= 1);
+      db.close();
+    });
+  });
+
+  describe('bytes_avg', () => {
+    it('stores and returns bytes_avg in getRoutes()', () => {
+      const db = makeDb();
+      insertRow(db, { route: '/size', bytes_avg: 512 });
+      const routes = db.getRoutes(24);
+      assert.ok(routes[0].bytes_avg > 0);
+      db.close();
+    });
+
+    it('returns null bytes_avg when not provided', () => {
+      const db = makeDb();
+      insertRow(db, { route: '/nosize', bytes_avg: null });
+      const routes = db.getRoutes(24);
+      assert.strictEqual(routes[0].bytes_avg, null);
       db.close();
     });
   });
