@@ -18,8 +18,8 @@
   "author": "APIForge",
   "license": "MIT",
   "scripts": {
-    "test": "node --test test/**/*.test.js",
-    "test:smoke": "node --test test/smoke.test.js"
+    "tests": "node --test tests/**/*.test.js",
+    "test:smoke": "node --test tests/smoke.test.js"
   },
   "engines": {
     "node": ">=22.5.0"
