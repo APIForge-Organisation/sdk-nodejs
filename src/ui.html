@@ -421,6 +421,7 @@ function mapInsights(insights) {
 function mapReleases(releases) {
   return (releases || []).map(r => ({
     tag:     r.release_tag,
+    ts:      r.release_ts,
     summary: `${r.routes_affected || 0} route${r.routes_affected !== 1 ? 's' : ''} recorded`,
     age:     formatAge(r.release_ts),
     by:      'local',
@@ -739,11 +740,18 @@ function Overview({ timeRange, setRoute, setParams, lastUpdated }) {
   const globalCalls = chartData?.calls || Array(fallbackPts).fill(0);
   const xLabelsFinal = xLabels.length > 0 ? xLabels : Array.from({length:globalP90.length}, (_,i) => `${i}`);
 
-  const releaseMarkers = (RELEASES || []).slice(0,2).map((r, i) => ({
-    idx:   Math.min(Math.floor(globalP90.length * (0.45 + i * 0.35)), globalP90.length - 1),
-    label: r.tag,
-    color: i === 0 ? '#b91c1c' : '#15803d',
-  }));
+  const MARKER_COLORS = ['#b91c1c','#15803d','#2563eb','#b45309','#7c3aed'];
+  const nowTs = Date.now() / 1000;
+  const releaseMarkers = globalTs && globalTs.length > 0
+    ? [...(RELEASES || [])]
+        .filter(r => r.ts != null && r.ts >= nowTs - hours * 3600)
+        .reverse()
+        .map((r, i) => {
+          const idx = globalTs.reduce((best, b, j) =>
+            Math.abs(b.bucket_ts - r.ts) < Math.abs(globalTs[best].bucket_ts - r.ts) ? j : best, 0);
+          return { idx, label: r.tag, color: MARKER_COLORS[i % MARKER_COLORS.length] };
+        })
+    : [];
 
   const topSlow   = [...ENDPOINTS].filter(e => !e.untracked && e.base_p90 > 0).sort((a,b) => b.base_p90-a.base_p90).slice(0,5);
   const topCalled = [...ENDPOINTS].sort((a,b) => b.calls24h-a.calls24h).slice(0,5);

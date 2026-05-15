@@ -229,6 +229,19 @@ class ApiForgeDatabase {
     this._begin.run();
     try {
       for (const r of routes) stmt.run(r.route, r.method);
+      // Remove routes no longer in the router that never had traffic
+      if (routes.length > 0) {
+        const keys = routes.map(r => `${r.route}|${r.method}`);
+        const ph   = keys.map(() => '?').join(', ');
+        this.db.prepare(`
+          DELETE FROM known_routes
+          WHERE route || '|' || method NOT IN (${ph})
+            AND NOT EXISTS (
+              SELECT 1 FROM api_metrics m
+              WHERE m.route = known_routes.route AND m.method = known_routes.method
+            )
+        `).run(...keys);
+      }
       this._commit.run();
     } catch (err) {
       this._rollback.run();
@@ -258,13 +271,17 @@ class ApiForgeDatabase {
 
   getReleases() {
     return this.db.prepare(`
-      SELECT release_tag,
-             MIN(bucket_ts) as release_ts,
-             COUNT(DISTINCT route || '|' || method) as routes_affected
-      FROM api_metrics
-      WHERE release_tag IS NOT NULL AND release_tag != ''
-      GROUP BY release_tag
-      ORDER BY release_ts DESC
+      WITH release_times AS (
+        SELECT release_tag, MIN(bucket_ts) AS release_ts
+        FROM api_metrics
+        WHERE release_tag IS NOT NULL AND release_tag != ''
+        GROUP BY release_tag
+      )
+      SELECT rt.release_tag,
+             rt.release_ts,
+             (SELECT COUNT(*) FROM known_routes WHERE first_seen <= rt.release_ts + 60) AS routes_affected
+      FROM release_times rt
+      ORDER BY rt.release_ts DESC
       LIMIT 20
     `).all();
   }
