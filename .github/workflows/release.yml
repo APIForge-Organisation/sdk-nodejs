@@ -23,7 +23,7 @@ jobs:
         run: npm ci
 
       - name: Run tests
-        run: npm tests
+        run: npm run tests
 
   publish:
     name: Publish to npm
