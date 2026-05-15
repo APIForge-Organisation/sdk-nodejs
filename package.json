@@ -1,11 +1,19 @@
 {
   "name": "apiforgejs",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "API observability & intelligence SDK for Express.js — local-first, privacy-first",
   "main": "src/index.js",
   "keywords": [
-    "api", "observability", "monitoring", "express", "metrics",
-    "performance", "analytics", "middleware", "latency", "local-first"
+    "api",
+    "observability",
+    "monitoring",
+    "express",
+    "metrics",
+    "performance",
+    "analytics",
+    "middleware",
+    "latency",
+    "local-first"
   ],
   "author": "APIForge",
   "license": "MIT",
