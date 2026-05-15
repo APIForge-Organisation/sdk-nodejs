@@ -1,6 +1,6 @@
 {
   "name": "apiforgejs",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "API observability & intelligence SDK for Express.js — local-first, privacy-first",
   "main": "src/index.js",
   "keywords": [

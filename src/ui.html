@@ -739,7 +739,7 @@ function Overview({ timeRange, setRoute, setParams, lastUpdated }) {
   const globalCalls = chartData?.calls || Array(fallbackPts).fill(0);
   const xLabelsFinal = xLabels.length > 0 ? xLabels : Array.from({length:globalP90.length}, (_,i) => `${i}`);
 
-  const releaseMarkers = (RELEASES || []).slice(0,2).map((r, i) => ({
+  const releaseMarkers = [...(RELEASES || [])].slice(0,2).reverse().map((r, i) => ({
     idx:   Math.min(Math.floor(globalP90.length * (0.45 + i * 0.35)), globalP90.length - 1),
     label: r.tag,
     color: i === 0 ? '#b91c1c' : '#15803d',
