@@ -6,6 +6,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — versioning 
 
 ---
 
+## [1.0.0] — 2026-05-15
+
+### Changed
+
+- Dashboard UI now loads React and Babel from jsDelivr CDN instead of local node_modules, making the shared `ui.html` SDK-agnostic and compatible with all future SDKs
+
+---
+
 ## [0.1.0] — 2026-05-15
 
 ### Added
@@ -21,4 +29,5 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — versioning 
 - Configurable sampling rate, ignored paths, environment label, release tag and service name
 - `middleware.shutdown()` for graceful teardown
 
+[1.0.0]: https://github.com/APIForge-Organisation/sdk-nodejs/releases/tag/v1.0.0
 [0.1.0]: https://github.com/APIForge-Organisation/sdk-nodejs/releases/tag/v0.1.0

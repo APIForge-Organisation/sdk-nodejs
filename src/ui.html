@@ -315,11 +315,9 @@ input.fld:focus { outline: 2px solid var(--accent-line); border-color: var(--acc
 <body>
   <div id="root"></div>
 
-  <!-- React UMD served from node_modules by apiforgejs dashboard server -->
-  <script src="/assets/react.js"></script>
-  <script src="/assets/react-dom.js"></script>
-  <!-- Babel standalone for in-browser JSX transpilation -->
-  <script src="https://unpkg.com/@babel/standalone@7/babel.min.js" crossorigin></script>
+  <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7/babel.min.js" crossorigin></script>
 
   <script type="text/babel" data-presets="react">
 'use strict';
