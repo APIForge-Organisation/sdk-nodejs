@@ -1,8 +1,17 @@
 # apiforgejs
 
-API observability & intelligence SDK for Express.js — local-first, privacy-first.
+**API observability & intelligence for Express.js — local-first, privacy-first.**
+
+[![npm version](https://img.shields.io/npm/v/apiforgejs?color=0066FF)](https://www.npmjs.com/package/apiforgejs)
+[![CI](https://img.shields.io/github/actions/workflow/status/APIForge-Organisation/sdk-nodejs/ci.yml?branch=main&label=CI)](https://github.com/APIForge-Organisation/sdk-nodejs/actions)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D22.5-brightgreen)](https://nodejs.org)
 
 > Track latency, error rates, and behavioral trends of your APIs. Everything stays on your machine.
+
+**→ [Full documentation](https://apiforge-organisation.github.io/docs/)**
+
+---
 
 ## Install
 
@@ -18,13 +27,11 @@ const { apiforge } = require('apiforgejs');
 
 const app = express();
 
-// Add the middleware — one line, zero config required
 app.use(apiforge({ mode: 'local' }));
 
 app.get('/users/:id', (req, res) => res.json({ id: req.params.id }));
 
 app.listen(3000, () => {
-  console.log('App running on :3000');
   // Dashboard auto-starts at http://localhost:4242
 });
 ```
@@ -45,15 +52,15 @@ Data is collected locally in `.apiforge.db` (SQLite). Nothing leaves your machin
 
 ```javascript
 app.use(apiforge({
-  mode:          'local',                 // only supported mode in v0.x
-  dbPath:        '.apiforge.db',          // SQLite file location
-  dashboardPort: 4242,                    // set to 0 to disable dashboard
-  flushInterval: 60_000,                  // flush to SQLite every 60s (ms)
-  env:           process.env.NODE_ENV,    // 'production' | 'staging' | 'development'
-  release:       process.env.APP_VERSION, // enables release regression detection
-  service:       'my-api',               // label for multi-service setups
-  sampling:      1.0,                     // 0.0–1.0 sample rate
-  ignorePaths:   ['/health', '/ping'],    // paths to skip
+  mode:          'local',
+  dbPath:        '.apiforge.db',
+  dashboardPort: 4242,             // set to 0 to disable
+  flushInterval: 60_000,           // flush to SQLite every 60s (ms)
+  env:           process.env.NODE_ENV,
+  release:       process.env.APP_VERSION,
+  service:       'my-api',
+  sampling:      1.0,              // 0.0–1.0 sample rate
+  ignorePaths:   ['/health', '/ping'],
 }));
 ```
 
@@ -64,11 +71,11 @@ Pass your release version to enable before/after deployment comparison:
 ```javascript
 app.use(apiforge({
   mode: 'local',
-  release: process.env.npm_package_version, // or 'v1.4.0', git SHA, etc.
+  release: process.env.npm_package_version,
 }));
 ```
 
-When a new release is detected, APIForge automatically compares P90 latency before vs. after and surfaces regressions as insights.
+When a new release is detected, APIForge compares P90 latency before vs. after and surfaces regressions as insights automatically.
 
 ## Graceful shutdown
 
@@ -77,7 +84,7 @@ const forge = apiforge({ mode: 'local' });
 app.use(forge);
 
 process.on('SIGTERM', () => {
-  forge.shutdown(); // flush remaining buffer to SQLite
+  forge.shutdown();
   process.exit(0);
 });
 ```
@@ -91,27 +98,11 @@ The SDK **never** collects:
 - Route parameter values (`/users/12345` → only `/users/:id` is stored)
 - IP addresses or User-Agent strings
 
-Collected fields: route pattern, HTTP method, status code, latency (ms), timestamp, and optional env/release/service labels.
-
-## Data collected
-
-```json
-{
-  "route":       "GET /users/:id",
-  "method":      "GET",
-  "status":      200,
-  "duration_ms": 134.7,
-  "timestamp":   "2026-05-13T10:00:00.000Z",
-  "env":         "production",
-  "release":     "v1.4.0"
-}
-```
-
 ## Requirements
 
-- Node.js >= 18
-- Express >= 4
+- Node.js ≥ 22.5 (uses the built-in `node:sqlite` module)
+- Express.js v4 or v5
 
 ## License
 
-MIT
+MIT — [APIForge Organisation](https://github.com/APIForge-Organisation)
