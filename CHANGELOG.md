@@ -6,6 +6,15 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — versioning 
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- `bytes_avg` field: average response body size (bytes) per route per bucket, sourced from the `Content-Length` response header — stored in SQLite and exposed via `/api/routes`
+- 4 unit tests covering `bytes_avg` aggregation and storage
+
+---
+
 ## [1.0.3] — 2026-05-15
 
 ### Added

@@ -125,6 +125,33 @@ describe('Aggregator', () => {
       assert.strictEqual(row.status_2xx, 0);
       agg.stop();
     });
+
+    it('computes bytes_avg as mean of non-null response sizes', () => {
+      const t = makeTransport();
+      const agg = new Aggregator(t, 999_999);
+      agg.start();
+
+      agg.record({ method: 'GET', route: '/s', env: 'test', release: null, status: 200, duration_ms: 10, response_size: 100 });
+      agg.record({ method: 'GET', route: '/s', env: 'test', release: null, status: 200, duration_ms: 20, response_size: 300 });
+      agg._flush();
+
+      const row = t.calls[0][0];
+      assert.strictEqual(row.bytes_avg, 200);
+      agg.stop();
+    });
+
+    it('sets bytes_avg to null when no response sizes are provided', () => {
+      const t = makeTransport();
+      const agg = new Aggregator(t, 999_999);
+      agg.start();
+
+      agg.record({ method: 'GET', route: '/n', env: 'test', release: null, status: 200, duration_ms: 10, response_size: null });
+      agg._flush();
+
+      const row = t.calls[0][0];
+      assert.strictEqual(row.bytes_avg, null);
+      agg.stop();
+    });
   });
 
   describe('stop()', () => {

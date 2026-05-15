@@ -33,6 +33,7 @@ class Aggregator {
         env: event.env,
         release: event.release,
         durations: [],
+        response_sizes: [],
         status_2xx: 0,
         status_4xx: 0,
         status_5xx: 0,
@@ -41,6 +42,7 @@ class Aggregator {
     }
 
     bucket.durations.push(event.duration_ms);
+    if (event.response_size != null) bucket.response_sizes.push(event.response_size);
 
     const s = event.status;
     if (s >= 200 && s < 300) bucket.status_2xx++;
@@ -58,6 +60,10 @@ class Aggregator {
     for (const bucket of this.buffer.values()) {
       const sorted = bucket.durations.slice().sort((a, b) => a - b);
       const n = sorted.length;
+      const sizes = bucket.response_sizes;
+      const bytes_avg = sizes.length > 0
+        ? sizes.reduce((a, b) => a + b, 0) / sizes.length
+        : null;
 
       rows.push({
         bucket_ts: bucketTs,
@@ -74,6 +80,7 @@ class Aggregator {
         lat_p99: percentile(sorted, 0.99),
         lat_min: sorted[0] ?? 0,
         lat_max: sorted[n - 1] ?? 0,
+        bytes_avg,
       });
     }
 
