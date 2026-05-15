@@ -1,0 +1,36 @@
+name: Sync Dashboard UI
+
+on:
+  repository_dispatch:
+    types: [dashboard-ui-updated]
+
+jobs:
+  sync:
+    name: Fetch and commit updated UI
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout dev
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Fetch latest ui.html from dashboard-ui
+        run: |
+          curl -sSfL \
+            "https://raw.githubusercontent.com/APIForge-Organisation/dashboard-ui/main/ui.html" \
+            -o src/ui.html
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add src/ui.html
+          if git diff --staged --quiet; then
+            echo "No changes — already up to date."
+          else
+            git commit -m "chore: sync dashboard UI from dashboard-ui@${{ github.event.client_payload.sha }}"
+            git push origin dev
+            echo "Pushed updated ui.html to dev."
+          fi
