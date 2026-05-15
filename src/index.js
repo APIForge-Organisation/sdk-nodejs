@@ -24,9 +24,11 @@ const { startDashboard }    = require('./dashboard');
  * @param {string[]} [options.ignorePaths]   - Paths to skip. Default: ['/favicon.ico'].
  */
 function apiforge(options = {}) {
-  const isCloud = options.mode === 'cloud' || (options.cloudUrl && options.apiKey);
+  const hasCloudUrl = Boolean(options.cloudUrl);
+  const hasApiKey   = Boolean(options.apiKey);
+  const isCloud     = options.mode === 'cloud' || (hasCloudUrl && hasApiKey);
 
-  if (isCloud && (!options.cloudUrl || !options.apiKey)) {
+  if ((hasCloudUrl || hasApiKey) && !(hasCloudUrl && hasApiKey)) {
     throw new Error('[apiforgejs] Cloud mode requires both cloudUrl and apiKey options.');
   }
 
