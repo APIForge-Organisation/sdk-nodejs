@@ -271,13 +271,17 @@ class ApiForgeDatabase {
 
   getReleases() {
     return this.db.prepare(`
-      SELECT release_tag,
-             MIN(bucket_ts) as release_ts,
-             (SELECT COUNT(*) FROM known_routes) as routes_affected
-      FROM api_metrics
-      WHERE release_tag IS NOT NULL AND release_tag != ''
-      GROUP BY release_tag
-      ORDER BY release_ts DESC
+      WITH release_times AS (
+        SELECT release_tag, MIN(bucket_ts) AS release_ts
+        FROM api_metrics
+        WHERE release_tag IS NOT NULL AND release_tag != ''
+        GROUP BY release_tag
+      )
+      SELECT rt.release_tag,
+             rt.release_ts,
+             (SELECT COUNT(*) FROM known_routes WHERE first_seen <= rt.release_ts + 60) AS routes_affected
+      FROM release_times rt
+      ORDER BY rt.release_ts DESC
       LIMIT 20
     `).all();
   }
