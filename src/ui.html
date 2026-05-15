@@ -717,7 +717,7 @@ function StatusStackChart({ data, height = 200 }) {
 }
 
 // ─── Overview ─────────────────────────────────────────────────────────────────
-function Overview({ timeRange, setRoute, setParams }) {
+function Overview({ timeRange, setRoute, setParams, lastUpdated }) {
   const { ENDPOINTS, RELEASES, INSIGHTS, SUMMARY } = window.AF_DATA;
   const [globalTs, setGlobalTs] = useState(null);
   const hours = TIME_HOURS[timeRange] || 24;
@@ -726,7 +726,7 @@ function Overview({ timeRange, setRoute, setParams }) {
     setGlobalTs(null);
     fetch(`/api/global-timeseries?hours=${hours}`)
       .then(r => r.json()).then(d => setGlobalTs(d)).catch(() => setGlobalTs([]));
-  }, [hours]);
+  }, [hours, lastUpdated]);
 
   const chartData   = globalTs ? tsBucketsToChart(globalTs, hours) : null;
   const points      = Math.max(chartData?.p90?.length || 0, 2);
@@ -1048,7 +1048,7 @@ function Endpoints({ setRoute, setParams }) {
 }
 
 // ─── Endpoint detail ──────────────────────────────────────────────────────────
-function EndpointDetail({ id, timeRange, setRoute, setParams }) {
+function EndpointDetail({ id, timeRange, setRoute, setParams, lastUpdated }) {
   const { ENDPOINTS, INSIGHTS } = window.AF_DATA;
   const ep  = ENDPOINTS.find(e => e.id === id) || ENDPOINTS[0];
   const [tab, setTab]       = useState('performance');
@@ -1063,7 +1063,7 @@ function EndpointDetail({ id, timeRange, setRoute, setParams }) {
     setTs(null);
     fetch(`/api/timeseries?route=${encodeURIComponent(route)}&method=${encodeURIComponent(method)}&hours=${hours}`)
       .then(r => r.json()).then(d => setTs(d)).catch(() => setTs([]));
-  }, [id, hours]);
+  }, [id, hours, lastUpdated]);
 
   if (!ep) return <div className="empty-state">Endpoint not found.</div>;
 
@@ -1626,9 +1626,9 @@ function App() {
           lastUpdated={lastUpdated} onRefresh={() => fetchData.current()}/>
         <div className="content">
           <div className="content-inner">
-            {route === 'overview'  && <Overview  timeRange={timeRange} setRoute={setRoute} setParams={setParams}/>}
+            {route === 'overview'  && <Overview  timeRange={timeRange} setRoute={setRoute} setParams={setParams} lastUpdated={lastUpdated}/>}
             {route === 'endpoints' && <Endpoints setRoute={setRoute} setParams={setParams}/>}
-            {route === 'endpoint'  && <EndpointDetail id={params.id} timeRange={timeRange} setRoute={setRoute} setParams={setParams}/>}
+            {route === 'endpoint'  && <EndpointDetail id={params.id} timeRange={timeRange} setRoute={setRoute} setParams={setParams} lastUpdated={lastUpdated}/>}
             {route === 'insights'  && <Insights  setRoute={setRoute} setParams={setParams}/>}
             {route === 'releases'  && <Releases/>}
             {route === 'settings'  && <Settings/>}
