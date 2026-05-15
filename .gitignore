@@ -1,0 +1,8 @@
+node_modules/
+.apiforge.db
+*.log
+.env
+.env.*
+*.db-shm
+*.db-wal
+coverage/
