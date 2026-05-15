@@ -3,7 +3,7 @@
 **API observability & intelligence for Express.js — local-first, privacy-first.**
 
 [![npm version](https://img.shields.io/npm/v/apiforgejs?color=0066FF)](https://www.npmjs.com/package/apiforgejs)
-[![CI](https://img.shields.io/github/actions/workflow/status/APIForge-Organisation/sdk-nodejs/ci.yml?branch=main&label=CI)](https://github.com/APIForge-Organisation/sdk-nodejs/actions)
+[![CI](https://img.shields.io/github/actions/workflow/status/APIForge-Organisation/sdk-nodejs/ci.yml?branch=dev&label=CI)](https://github.com/APIForge-Organisation/sdk-nodejs/actions)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D22.5-brightgreen)](https://nodejs.org)
 
