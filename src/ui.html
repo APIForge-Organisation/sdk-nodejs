@@ -1,0 +1,1648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>APIForge — Local Dashboard</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%230a0a0a'/><text x='16' y='22' text-anchor='middle' fill='white' font-size='14' font-family='monospace' font-weight='bold'>AF</text></svg>">
+  <style>
+/* APIForge Local Dashboard */
+:root {
+  --bg: #ffffff; --bg-elev: #fafafa; --bg-sunken: #f5f5f4;
+  --surface: #ffffff; --border: #ececec; --border-strong: #d4d4d4;
+  --text: #0a0a0a; --text-muted: #525252; --text-dim: #8a8a8a; --text-faint: #b3b3b3;
+  --accent: #2563eb; --accent-hover: #1d4ed8;
+  --accent-soft: rgba(37,99,235,0.08); --accent-line: rgba(37,99,235,0.18);
+  --ok: #15803d; --ok-soft: rgba(21,128,61,0.08);
+  --warn: #b45309; --warn-soft: rgba(180,83,9,0.09);
+  --danger: #b91c1c; --danger-soft: rgba(185,28,28,0.08);
+  --info: #2563eb; --info-soft: rgba(37,99,235,0.08); --neutral: #525252;
+  --row-h: 40px; --pad-card: 20px;
+  --radius-sm: 5px; --radius: 8px; --radius-lg: 12px;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow: 0 4px 16px rgba(0,0,0,0.06);
+  --shadow-lg: 0 12px 40px rgba(0,0,0,0.12);
+  --sans: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: 'Geist Mono','JetBrains Mono',ui-monospace,'SF Mono',Menlo,monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; }
+body { font-family: var(--sans); font-size: 13px; line-height: 1.45; color: var(--text);
+  background: var(--bg); -webkit-font-smoothing: antialiased; }
+#root { height: 100%; }
+
+.app { display: grid; grid-template-columns: 232px 1fr; height: 100vh; overflow: hidden; }
+.sidebar { border-right: 1px solid var(--border); background: var(--bg-elev);
+  display: flex; flex-direction: column; min-height: 0; }
+.sb-brand { padding: 18px 18px 14px; display: flex; align-items: center; gap: 10px;
+  border-bottom: 1px solid var(--border); }
+.sb-logo { width: 24px; height: 24px; border-radius: 6px; background: var(--text); color: white;
+  display: grid; place-items: center; font-family: var(--mono); font-size: 12px;
+  font-weight: 600; letter-spacing: -0.5px; }
+.sb-name { font-weight: 600; font-size: 13.5px; letter-spacing: -0.2px; flex: 1; }
+.sb-mode { font-family: var(--mono); font-size: 10px; text-transform: uppercase;
+  letter-spacing: 0.5px; padding: 2px 6px; border-radius: 3px;
+  background: var(--accent-soft); color: var(--accent); font-weight: 500; }
+.sb-section-label { padding: 16px 18px 6px; font-size: 10.5px; font-weight: 500;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dim); }
+.sb-nav { padding: 4px 8px; display: flex; flex-direction: column; gap: 1px; }
+.sb-item { display: flex; align-items: center; gap: 10px; padding: 7px 10px;
+  border-radius: 5px; cursor: pointer; color: var(--text-muted); font-size: 13px;
+  font-weight: 500; user-select: none; }
+.sb-item:hover { background: rgba(0,0,0,0.04); color: var(--text); }
+.sb-item.active { background: var(--surface); color: var(--text);
+  box-shadow: 0 0 0 1px var(--border), 0 1px 2px rgba(0,0,0,0.03); }
+.sb-item .ico { width: 16px; height: 16px; opacity: 0.8; flex-shrink: 0; }
+.sb-item .badge { margin-left: auto; font-family: var(--mono); font-size: 10.5px;
+  color: var(--text-dim); background: var(--bg-sunken); padding: 1px 6px;
+  border-radius: 999px; font-weight: 500; }
+.sb-item.active .badge { background: var(--accent-soft); color: var(--accent); }
+.sb-spacer { flex: 1; }
+.sb-footer { border-top: 1px solid var(--border); padding: 12px 16px 14px;
+  display: flex; flex-direction: column; gap: 8px; }
+.sb-recording { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); }
+.dot-pulse { width: 6px; height: 6px; border-radius: 50%; background: var(--ok); position: relative; flex-shrink: 0; }
+.dot-pulse::after { content: ''; position: absolute; inset: -2px; border-radius: 50%;
+  background: var(--ok); opacity: 0.4; animation: pulse 1.8s ease-out infinite; }
+@keyframes pulse { 0% { transform: scale(1); opacity: 0.4; } 100% { transform: scale(2.6); opacity: 0; } }
+
+.main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.topbar { height: 56px; border-bottom: 1px solid var(--border); background: var(--bg);
+  display: flex; align-items: center; gap: 14px; padding: 0 24px; flex-shrink: 0; }
+.topbar-title { font-size: 15px; font-weight: 600; letter-spacing: -0.2px; }
+.topbar-crumbs { font-size: 13px; color: var(--text-dim); display: flex; align-items: center; gap: 6px; }
+.topbar-crumbs .sep { color: var(--text-faint); }
+.topbar-crumbs button { background: none; border: 0; font: inherit; color: var(--text-dim); cursor: pointer; padding: 0; }
+.topbar-crumbs button:hover { color: var(--text); }
+.topbar-crumbs .current { color: var(--text); font-family: var(--mono); font-size: 12.5px; }
+.topbar-spacer { flex: 1; }
+.segmented { display: flex; background: var(--bg-sunken); border-radius: 6px; padding: 2px; gap: 1px; }
+.segmented button { background: none; border: 0; padding: 5px 10px; border-radius: 4px; font: inherit;
+  font-size: 12px; font-weight: 500; color: var(--text-muted); cursor: pointer; font-family: var(--mono); }
+.segmented button.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow-sm); }
+.select { background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+  padding: 6px 28px 6px 10px; font: inherit; font-size: 12.5px; color: var(--text); cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 10 10' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2 4l3 3 3-3' stroke='%23737373' stroke-width='1.3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 8px center; }
+.select:hover { border-color: var(--border-strong); }
+.btn { background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+  padding: 6px 12px; font: inherit; font-size: 12.5px; font-weight: 500; color: var(--text);
+  cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.btn:hover { background: var(--bg-elev); border-color: var(--border-strong); }
+.btn-primary { background: var(--text); color: white; border-color: var(--text); }
+.btn-primary:hover { background: #333; border-color: #333; }
+.btn-ghost { background: transparent; border-color: transparent; }
+.btn-ghost:hover { background: var(--bg-elev); }
+.btn-danger { color: var(--danger); border-color: var(--border); }
+.btn-danger:hover { background: var(--danger-soft); border-color: var(--danger); }
+
+.content { flex: 1; overflow-y: auto; background: var(--bg); }
+.content-inner { max-width: 1400px; margin: 0 auto; padding: 24px 32px 48px; }
+.content::-webkit-scrollbar { width: 10px; }
+.content::-webkit-scrollbar-thumb { background: var(--bg-sunken); border-radius: 5px; border: 2px solid var(--bg); }
+.content::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
+
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.card-h { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+.card-h-title { font-size: 13px; font-weight: 600; letter-spacing: -0.1px; }
+.card-h-sub { font-size: 12px; color: var(--text-dim); font-family: var(--mono); }
+.card-h-actions { margin-left: auto; display: flex; gap: 6px; }
+.card-b { padding: var(--pad-card); }
+.row { display: flex; align-items: center; }
+.gap-2 { gap: 8px; }
+.mono { font-family: var(--mono); }
+.dim { color: var(--text-dim); }
+
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+.tab { background: none; border: 0; font: inherit; font-size: 13px; font-weight: 500;
+  color: var(--text-muted); padding: 10px 12px; cursor: pointer;
+  border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--text); border-bottom-color: var(--text); }
+
+.page-h { display: flex; align-items: flex-end; justify-content: space-between;
+  margin-bottom: 24px; gap: 20px; }
+.page-h h1 { font-size: 24px; font-weight: 600; letter-spacing: -0.4px; margin: 0 0 4px; }
+.page-h .sub { font-size: 13px; color: var(--text-muted); }
+
+.overview-grid { display: grid; grid-template-columns: 1.1fr 2fr; gap: 16px; margin-bottom: 16px; }
+.health-card { padding: 24px; }
+.health-row { display: flex; align-items: center; gap: 24px; }
+.health-num { font-size: 64px; font-weight: 600; letter-spacing: -2.5px;
+  font-family: var(--mono); line-height: 1; color: var(--text); }
+.health-num .denom { font-size: 22px; color: var(--text-faint); margin-left: 4px; }
+.health-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-dim); font-weight: 500; margin-bottom: 6px; }
+.health-trend { font-size: 12px; color: var(--ok); font-family: var(--mono);
+  display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; }
+.health-dims { display: grid; grid-template-columns: repeat(4,1fr); gap: 0;
+  margin-top: 22px; border-top: 1px solid var(--border); padding-top: 18px; }
+.health-dim { padding-right: 12px; }
+.health-dim + .health-dim { border-left: 1px solid var(--border); padding-left: 14px; }
+.health-dim-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase;
+  letter-spacing: 0.05em; font-weight: 500; }
+.health-dim-val { font-size: 18px; font-family: var(--mono); font-weight: 500; margin-top: 4px; }
+
+.stats-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 0;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface); overflow: hidden; margin-bottom: 16px; }
+.stat-cell { padding: 16px 20px; }
+.stat-cell + .stat-cell { border-left: 1px solid var(--border); }
+.stat-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase;
+  letter-spacing: 0.06em; font-weight: 500; }
+.stat-val { font-size: 22px; font-weight: 600; font-family: var(--mono);
+  letter-spacing: -0.5px; margin-top: 6px; display: flex; align-items: baseline; gap: 6px; }
+.stat-val .unit { font-size: 12px; color: var(--text-dim); font-weight: 400; }
+.stat-delta { font-size: 11.5px; font-family: var(--mono); margin-top: 4px;
+  display: inline-flex; align-items: center; gap: 3px; color: var(--text-dim); }
+.stat-delta.up { color: var(--ok); }
+.stat-delta.bad-up { color: var(--danger); }
+.stat-delta.good-down { color: var(--ok); }
+
+.two-col { display: grid; grid-template-columns: 1.6fr 1fr; gap: 16px; }
+
+.tbl { width: 100%; border-collapse: collapse; font-size: 13px; }
+.tbl th { font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-dim); text-align: left; padding: 10px 14px;
+  border-bottom: 1px solid var(--border); background: var(--bg-elev); white-space: nowrap; }
+.tbl td { padding: 0 14px; border-bottom: 1px solid var(--border); vertical-align: middle; height: var(--row-h); }
+.tbl tr:last-child td { border-bottom: 0; }
+.tbl tr.click { cursor: pointer; }
+.tbl tr.click:hover td { background: var(--bg-elev); }
+.tbl td.num, .tbl th.num { text-align: right; font-family: var(--mono); }
+
+.method { font-family: var(--mono); font-size: 10.5px; font-weight: 600; padding: 2px 6px;
+  border-radius: 3px; letter-spacing: 0.02em; display: inline-block; min-width: 44px; text-align: center; }
+.method-GET    { background: rgba(37,99,235,0.1);  color: #1d4ed8; }
+.method-POST   { background: rgba(21,128,61,0.1);  color: #15803d; }
+.method-PUT    { background: rgba(180,83,9,0.1);   color: #b45309; }
+.method-PATCH  { background: rgba(124,58,237,0.1); color: #6d28d9; }
+.method-DELETE { background: rgba(185,28,28,0.1);  color: #b91c1c; }
+.route { font-family: var(--mono); font-size: 12.5px; }
+
+.bar-inline { position: relative; height: 4px; background: var(--bg-sunken);
+  border-radius: 2px; overflow: hidden; width: 80px; display: inline-block; vertical-align: middle; }
+.bar-inline > span { position: absolute; inset: 0 auto 0 0; background: var(--accent); border-radius: 2px; }
+
+.insight-feed { display: flex; flex-direction: column; gap: 10px; }
+.insight { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 14px 16px; display: grid; grid-template-columns: auto 1fr auto;
+  gap: 12px; align-items: flex-start; cursor: default; }
+.insight:hover { border-color: var(--border-strong); }
+.insight-ico { width: 28px; height: 28px; border-radius: 6px; display: grid; place-items: center;
+  flex-shrink: 0; font-family: var(--mono); font-size: 11px; font-weight: 600; }
+.insight-PERF      { background: var(--warn-soft);    color: var(--warn); }
+.insight-DRIFT     { background: var(--danger-soft);  color: var(--danger); }
+.insight-DEAD      { background: rgba(82,82,82,0.08); color: var(--neutral); }
+.insight-UNTRACKED { background: rgba(82,82,82,0.08); color: var(--neutral); }
+.insight-ANOMALY   { background: var(--info-soft);    color: var(--info); }
+.insight-OK        { background: var(--ok-soft);      color: var(--ok); }
+.insight-title { font-size: 13px; font-weight: 500; color: var(--text); line-height: 1.5; margin-bottom: 4px; }
+.insight-meta { display: flex; align-items: center; gap: 10px; font-size: 11.5px;
+  color: var(--text-dim); font-family: var(--mono); }
+.insight-meta .sep { color: var(--text-faint); }
+.insight-action { font-size: 11.5px; color: var(--text-dim); font-family: var(--mono); white-space: nowrap; }
+.insight-group { margin-bottom: 24px; }
+.insight-group-h { display: flex; align-items: center; gap: 10px; margin: 0 0 10px;
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); font-weight: 500; }
+.insight-group-h .cnt { font-family: var(--mono); color: var(--text-faint); }
+
+.chart-wrap { padding: 8px 16px 14px; }
+.chart-legend { display: flex; gap: 14px; padding: 0 18px 6px; font-size: 11.5px; color: var(--text-muted); }
+.chart-legend .dot { width: 8px; height: 2px; display: inline-block; margin-right: 6px; vertical-align: middle; }
+.chart-tip { position: absolute; background: var(--text); color: white; font-family: var(--mono);
+  font-size: 11px; padding: 5px 8px; border-radius: 4px; pointer-events: none;
+  transform: translate(-50%, -120%); white-space: nowrap; z-index: 5; }
+.chart-tip::after { content: ''; position: absolute; bottom: -3px; left: 50%;
+  width: 6px; height: 6px; background: var(--text); transform: translateX(-50%) rotate(45deg); }
+
+.release-list { display: flex; flex-direction: column; gap: 1px; }
+.release-row { display: grid; grid-template-columns: 16px 110px 1fr auto auto;
+  align-items: center; gap: 14px; padding: 14px 16px;
+  border-bottom: 1px solid var(--border); cursor: pointer; }
+.release-row:hover { background: var(--bg-elev); }
+.release-row.selected { background: var(--accent-soft); }
+.release-row:last-child { border-bottom: 0; }
+.release-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--text);
+  border: 2px solid var(--bg); box-shadow: 0 0 0 1px var(--border-strong); }
+.release-row.selected .release-dot { background: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.release-tag { font-family: var(--mono); font-size: 12.5px; font-weight: 500; }
+.release-meta { display: flex; gap: 12px; font-size: 12px; color: var(--text-dim); font-family: var(--mono); }
+.release-badge { font-family: var(--mono); font-size: 10.5px; text-transform: uppercase;
+  padding: 2px 6px; border-radius: 3px; font-weight: 500; letter-spacing: 0.04em; }
+.rb-ok   { background: var(--ok-soft);   color: var(--ok); }
+.rb-warn { background: var(--warn-soft); color: var(--warn); }
+.rb-bad  { background: var(--danger-soft); color: var(--danger); }
+
+.compare-deltas { display: grid; grid-template-columns: repeat(3,1fr); border-top: 1px solid var(--border); }
+.compare-delta { padding: 14px 18px; }
+.compare-delta + .compare-delta { border-left: 1px solid var(--border); }
+
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(4px); z-index: 100; display: grid; place-items: center; padding: 24px; }
+.modal { background: var(--surface); border-radius: 12px; box-shadow: var(--shadow-lg);
+  width: 100%; max-width: 680px; overflow: hidden; display: flex; flex-direction: column; max-height: 90vh; }
+.modal-h { padding: 20px 24px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+.modal-b { padding: 24px; overflow-y: auto; }
+.modal-b::-webkit-scrollbar { width: 8px; }
+.modal-b::-webkit-scrollbar-thumb { background: var(--bg-sunken); border-radius: 4px; }
+.modal-f { padding: 14px 24px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: space-between; }
+
+.code { background: #0a0a0a; color: #e4e4e7; border-radius: 8px; padding: 14px 16px;
+  font-family: var(--mono); font-size: 12.5px; line-height: 1.6; overflow-x: auto; position: relative; }
+.code-copy { position: absolute; top: 8px; right: 8px; background: rgba(255,255,255,0.08);
+  border: 0; color: #e4e4e7; font: inherit; font-family: var(--mono); font-size: 11px;
+  padding: 3px 8px; border-radius: 4px; cursor: pointer; }
+.code-copy:hover { background: rgba(255,255,255,0.16); }
+
+.onb-step { display: flex; gap: 14px; margin-bottom: 22px; }
+.onb-num { width: 26px; height: 26px; border-radius: 50%; background: var(--bg-sunken);
+  display: grid; place-items: center; font-family: var(--mono); font-size: 12px;
+  font-weight: 600; color: var(--text-muted); flex-shrink: 0; }
+.onb-step.done .onb-num { background: var(--ok); color: white; }
+.onb-step.active .onb-num { background: var(--text); color: white; }
+.onb-content { flex: 1; }
+.onb-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.onb-desc { font-size: 12.5px; color: var(--text-muted); margin-bottom: 10px; }
+.waiting { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-muted);
+  padding: 12px 14px; background: var(--bg-elev); border: 1px dashed var(--border-strong);
+  border-radius: 6px; font-family: var(--mono); }
+.waiting.live { border-style: solid; border-color: var(--ok); background: var(--ok-soft); color: var(--ok); }
+.spinner { width: 12px; height: 12px; border: 2px solid var(--border-strong);
+  border-top-color: var(--text-muted); border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.settings-list { display: flex; flex-direction: column; }
+.setting-row { display: grid; grid-template-columns: 1fr auto; gap: 24px;
+  padding: 18px 20px; border-bottom: 1px solid var(--border); align-items: center; }
+.setting-row:last-child { border-bottom: 0; }
+.setting-title { font-size: 13px; font-weight: 500; margin-bottom: 3px; }
+.setting-desc { font-size: 12px; color: var(--text-muted); max-width: 460px; line-height: 1.5; }
+.toggle { position: relative; width: 34px; height: 20px; background: var(--bg-sunken);
+  border: 1px solid var(--border-strong); border-radius: 999px; cursor: pointer; transition: background 0.15s; }
+.toggle::after { content: ''; position: absolute; top: 1px; left: 1px; width: 16px; height: 16px;
+  border-radius: 50%; background: white; box-shadow: 0 1px 2px rgba(0,0,0,0.15); transition: transform 0.15s; }
+.toggle.on { background: var(--text); border-color: var(--text); }
+.toggle.on::after { transform: translateX(14px); }
+input.fld { background: var(--surface); border: 1px solid var(--border); border-radius: 6px;
+  padding: 6px 10px; font: inherit; font-size: 12.5px; font-family: var(--mono); color: var(--text); }
+input.fld:focus { outline: 2px solid var(--accent-line); border-color: var(--accent); }
+
+.filter-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; }
+.search { position: relative; flex: 1; max-width: 360px; }
+.search input { width: 100%; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 6px; padding: 7px 10px 7px 32px; font: inherit; font-size: 12.5px; color: var(--text); }
+.search input:focus { outline: 2px solid var(--accent-line); border-color: var(--accent); }
+.search::before { content: ''; position: absolute; left: 10px; top: 50%; width: 13px; height: 13px;
+  transform: translateY(-50%);
+  background: url("data:image/svg+xml,%3Csvg width='14' height='14' viewBox='0 0 14 14' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='6' cy='6' r='4.5' stroke='%23a3a3a3' stroke-width='1.4' fill='none'/%3E%3Cpath d='M9.5 9.5 L12 12' stroke='%23a3a3a3' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E"); }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { font-size: 12px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border);
+  background: var(--surface); cursor: pointer; color: var(--text-muted); font-weight: 500; }
+.chip:hover { background: var(--bg-elev); }
+.chip.on { background: var(--text); color: white; border-color: var(--text); }
+
+.status-dist { display: flex; height: 8px; border-radius: 2px; overflow: hidden; width: 100%; background: var(--bg-sunken); }
+.status-dist > span { display: block; }
+.s2xx { background: var(--ok); }
+.s4xx { background: var(--warn); }
+.s5xx { background: var(--danger); }
+
+.empty-state { text-align: center; padding: 48px 24px; color: var(--text-dim); }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- React UMD served from node_modules by apiforgejs dashboard server -->
+  <script src="/assets/react.js"></script>
+  <script src="/assets/react-dom.js"></script>
+  <!-- Babel standalone for in-browser JSX transpilation -->
+  <script src="https://unpkg.com/@babel/standalone@7/babel.min.js" crossorigin></script>
+
+  <script type="text/babel" data-presets="react">
+'use strict';
+const { useState, useEffect, useRef, useMemo } = React;
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const TIME_HOURS = { '1h': 1, '24h': 24, '7d': 168, '30d': 720 };
+
+function fmtNum(n) {
+  if (n == null || isNaN(n)) return '—';
+  if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + 'k';
+  return String(Math.round(n));
+}
+function fmtMs(n)  { return n == null ? '—' : Math.round(n) + 'ms'; }
+function fmtPct(n) { return n == null ? '—' : (n * 100).toFixed(2) + '%'; }
+
+function formatAge(ts) {
+  const diff = Math.floor(Date.now() / 1000) - ts;
+  if (diff < 60)    return 'just now';
+  if (diff < 3600)  return `${Math.round(diff / 60)}m ago`;
+  if (diff < 86400) return `${Math.round(diff / 3600)}h ago`;
+  return `${Math.round(diff / 86400)}d ago`;
+}
+
+function seededRng(seed) {
+  let s = Math.abs(Math.round(seed)) % 2147483647 || 1;
+  return () => { s = (s * 16807) % 2147483647; return (s - 1) / 2147483646; };
+}
+
+function genSeries(ep, points, { seed = 0 } = {}) {
+  const rng  = seededRng((ep.base_p90 || 100) * 100 + seed * 997);
+  const base = ep.base_p90 || 50;
+  return Array.from({ length: points }, (_, i) => {
+    const noise = (rng() - 0.5) * 0.35;
+    const wave  = Math.sin((i / points) * Math.PI * 2) * 0.08;
+    return Math.max(1, base * (1 + noise + wave));
+  });
+}
+function genCallSeries(ep, points) {
+  const rng  = seededRng((ep.calls24h || 100) * 13);
+  const base = (ep.calls24h || 0) / points;
+  return Array.from({ length: points }, () => Math.max(0, Math.round(base * (0.5 + rng()))));
+}
+function genErrorSeries(ep, points) {
+  return genCallSeries(ep, points).map(c => Math.round(c * (ep.err || 0)));
+}
+
+function tsBucketsToChart(ts, hours) {
+  if (!ts || ts.length === 0) return null;
+  const fmt = t => {
+    const d = new Date(t * 1000);
+    if (hours <= 1)   return `${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+    if (hours <= 24)  return `${d.getHours()}h`;
+    if (hours <= 168) return ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
+    return `${d.getMonth()+1}/${d.getDate()}`;
+  };
+  return {
+    p50:    ts.map(b => b.p50 || 0),
+    p90:    ts.map(b => b.p90 || 0),
+    p99:    ts.map(b => b.p99 || 0),
+    calls:  ts.map(b => b.calls || 0),
+    errors: ts.map(b => b.errors || 0),
+    labels: ts.map(b => fmt(b.bucket_ts)),
+  };
+}
+
+// ─── Data mapping ─────────────────────────────────────────────────────────────
+function mapEndpoints(routes) {
+  return routes.map(r => ({
+    id:        `${r.method}|${r.route}`,
+    method:    r.method,
+    route:     r.route,
+    calls24h:  r.calls || 0,
+    base_p50:  Math.round(r.p50 || 0),
+    base_p90:  Math.round(r.p90 || 0),
+    base_p99:  Math.round(r.p99 || 0),
+    err:       r.calls > 0 ? ((r.calls_4xx || 0) + (r.calls_5xx || 0)) / r.calls : 0,
+    calls_2xx: r.calls_2xx || 0,
+    calls_4xx: r.calls_4xx || 0,
+    calls_5xx: r.calls_5xx || 0,
+    untracked: r.untracked || false,
+    drift: 1,
+  }));
+}
+
+function mapInsights(insights) {
+  const sevMap = { error: 'high', warning: 'med', info: 'low', success: 'info' };
+  return (insights || []).map((ins, i) => ({
+    id:          `i${i}`,
+    type:        ins.type || 'OK',
+    severity:    sevMap[ins.severity] || 'info',
+    title:       ins.message || '',
+    endpoint:    ins.route ? `${ins.method} ${ins.route}` : '',
+    endpoint_id: ins.route ? `${ins.method}|${ins.route}` : null,
+    meta: [],
+    ts: 'just now',
+  }));
+}
+
+function mapReleases(releases) {
+  return (releases || []).map(r => ({
+    tag:     r.release_tag,
+    summary: `${r.routes_affected || 0} route${r.routes_affected !== 1 ? 's' : ''} recorded`,
+    age:     formatAge(r.release_ts),
+    by:      'local',
+    status:  'ok',
+    delta_p90: 0, delta_err: 0, delta_calls: 0,
+  }));
+}
+
+// ─── Icons ────────────────────────────────────────────────────────────────────
+const I = {
+  dashboard: () => (<svg className="ico" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="5.5" height="6" rx="1" stroke="currentColor" strokeWidth="1.4"/><rect x="2" y="9.5" width="5.5" height="4.5" rx="1" stroke="currentColor" strokeWidth="1.4"/><rect x="8.5" y="2" width="5.5" height="3.5" rx="1" stroke="currentColor" strokeWidth="1.4"/><rect x="8.5" y="7" width="5.5" height="7" rx="1" stroke="currentColor" strokeWidth="1.4"/></svg>),
+  endpoints: () => (<svg className="ico" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/><circle cx="4" cy="4" r="1.2" fill="currentColor"/><circle cx="6" cy="8" r="1.2" fill="currentColor"/><circle cx="3.5" cy="12" r="1.2" fill="currentColor"/></svg>),
+  insights:  () => (<svg className="ico" viewBox="0 0 16 16" fill="none"><path d="M8 1.5L9.7 5.8L14 6.2L10.7 9.1L11.7 13.4L8 11.2L4.3 13.4L5.3 9.1L2 6.2L6.3 5.8L8 1.5Z" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round"/></svg>),
+  releases:  () => (<svg className="ico" viewBox="0 0 16 16" fill="none"><path d="M8 1.5V10M8 10L4.5 6.5M8 10L11.5 6.5M3 13h10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/></svg>),
+  settings:  () => (<svg className="ico" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.2" stroke="currentColor" strokeWidth="1.3"/><path d="M8 2v1.5M8 12.5V14M14 8h-1.5M3.5 8H2M12.2 3.8l-1 1M4.8 11.2l-1 1M12.2 12.2l-1-1M4.8 4.8l-1-1" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/></svg>),
+  arrowUp:   () => (<svg width="9" height="9" viewBox="0 0 9 9" fill="none" style={{verticalAlign:'middle'}}><path d="M4.5 7.5V2M4.5 2L2 4.5M4.5 2L7 4.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>),
+  arrowDown: () => (<svg width="9" height="9" viewBox="0 0 9 9" fill="none" style={{verticalAlign:'middle'}}><path d="M4.5 1.5V7M4.5 7L2 4.5M4.5 7L7 4.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>),
+  arrowR:    () => (<svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M2 5h6M8 5L5.5 2.5M8 5L5.5 7.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/></svg>),
+  external:  () => (<svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M5 2H10V7M10 2L5.5 6.5M9 7v3H2V3h3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/></svg>),
+  close:     () => (<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 3L9 9M9 3L3 9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/></svg>),
+  check:     () => (<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 6.5L5 9L9.5 3.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/></svg>),
+};
+
+// ─── Shell ────────────────────────────────────────────────────────────────────
+function Sidebar({ route, setRoute, onOpenOnboarding, counts }) {
+  const items = [
+    { id: 'overview',  label: 'Overview',  ico: I.dashboard },
+    { id: 'endpoints', label: 'Endpoints', ico: I.endpoints, badge: counts.endpoints },
+    { id: 'insights',  label: 'Insights',  ico: I.insights,  badge: counts.insights },
+    { id: 'releases',  label: 'Releases',  ico: I.releases,  badge: counts.releases },
+    { id: 'settings',  label: 'Settings',  ico: I.settings },
+  ];
+  return (
+    <aside className="sidebar">
+      <div className="sb-brand">
+        <div className="sb-logo">AF</div>
+        <div className="sb-name">APIForge</div>
+        <div className="sb-mode">local</div>
+      </div>
+      <div className="sb-section-label">Workspace</div>
+      <nav className="sb-nav">
+        {items.map(it => (
+          <div key={it.id}
+            className={`sb-item ${route === it.id || (route === 'endpoint' && it.id === 'endpoints') ? 'active' : ''}`}
+            onClick={() => setRoute(it.id)}>
+            <it.ico />
+            <span>{it.label}</span>
+            {it.badge != null && it.badge > 0 && <span className="badge">{it.badge}</span>}
+          </div>
+        ))}
+      </nav>
+      <div className="sb-spacer" />
+      <div className="sb-footer">
+        <div className="sb-recording">
+          <span className="dot-pulse"></span>
+          <span>Recording</span>
+        </div>
+        <button className="btn btn-ghost"
+          style={{justifyContent:'flex-start',padding:'5px 6px',fontSize:12,color:'var(--text-muted)'}}
+          onClick={onOpenOnboarding}>
+          <I.external />
+          <span>Connect a service</span>
+        </button>
+      </div>
+    </aside>
+  );
+}
+
+function useAgo(ts) {
+  const [, tick] = useState(0);
+  useEffect(() => {
+    if (!ts) return;
+    const id = setInterval(() => tick(n => n + 1), 5000);
+    return () => clearInterval(id);
+  }, [ts]);
+  if (!ts) return null;
+  const s = Math.round((Date.now() - ts) / 1000);
+  if (s < 5)  return 'just now';
+  if (s < 60) return `${s}s ago`;
+  return `${Math.round(s / 60)}m ago`;
+}
+
+function Topbar({ route, params, setRoute, timeRange, setTimeRange, env, setEnv, getEndpoint, lastUpdated, onRefresh }) {
+  const titles = { overview:'Overview', endpoints:'Endpoints', insights:'Insights', releases:'Releases', settings:'Settings' };
+  const ep = route === 'endpoint' ? getEndpoint(params.id) : null;
+  const ago = useAgo(lastUpdated);
+  return (
+    <header className="topbar">
+      {route === 'endpoint' ? (
+        <div className="topbar-crumbs">
+          <button onClick={() => setRoute('endpoints')}>Endpoints</button>
+          <span className="sep">/</span>
+          <span className="current">
+            {ep && <span className={`method method-${ep.method}`} style={{marginRight:6}}>{ep.method}</span>}
+            {ep?.route || '…'}
+          </span>
+        </div>
+      ) : (
+        <div className="topbar-title">{titles[route] || ''}</div>
+      )}
+      <div className="topbar-spacer" />
+      {ago && (
+        <button onClick={onRefresh} title="Refresh now" style={{
+          display:'flex', alignItems:'center', gap:5, padding:'4px 8px',
+          background:'none', border:'1px solid var(--border)', borderRadius:'var(--radius-sm)',
+          cursor:'pointer', color:'var(--text-muted)', fontSize:11,
+        }}>
+          <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M1 4s1-3 7-3a7 7 0 1 1-6.9 8"/><path d="M1 1v3h3"/>
+          </svg>
+          {ago}
+        </button>
+      )}
+      {route !== 'settings' && route !== 'releases' && (
+        <div className="segmented">
+          {['1h','24h','7d','30d'].map(r => (
+            <button key={r} className={timeRange === r ? 'active' : ''} onClick={() => setTimeRange(r)}>{r}</button>
+          ))}
+        </div>
+      )}
+      {route !== 'settings' && (
+        <select className="select" value={env} onChange={e => setEnv(e.target.value)}>
+          <option value="production">production</option>
+          <option value="staging">staging</option>
+          <option value="development">development</option>
+        </select>
+      )}
+    </header>
+  );
+}
+
+function Modal({ children, onClose, max = 680 }) {
+  return (
+    <div className="modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose?.(); }}>
+      <div className="modal" style={{ maxWidth: max }}>{children}</div>
+    </div>
+  );
+}
+
+function CodeBlock({ children }) {
+  const [copied, setCopied] = useState(false);
+  return (
+    <div className="code">
+      <button className="code-copy" onClick={() => {
+        navigator.clipboard?.writeText(typeof children === 'string' ? children : '');
+        setCopied(true); setTimeout(() => setCopied(false), 1200);
+      }}>{copied ? '✓ COPIED' : 'COPY'}</button>
+      <pre style={{margin:0,fontFamily:'inherit',whiteSpace:'pre-wrap'}}>{children}</pre>
+    </div>
+  );
+}
+
+// ─── Charts ───────────────────────────────────────────────────────────────────
+function LineChart({ series, height = 220, padding = {top:16,right:16,bottom:24,left:36}, xLabels, markers = [], formatY = v => `${Math.round(v)}ms` }) {
+  const wrapRef = useRef(null);
+  const [w, setW] = useState(600);
+  const [hover, setHover] = useState(null);
+  useEffect(() => {
+    if (!wrapRef.current) return;
+    const ro = new ResizeObserver(() => wrapRef.current && setW(wrapRef.current.clientWidth));
+    ro.observe(wrapRef.current);
+    setW(wrapRef.current.clientWidth);
+    return () => ro.disconnect();
+  }, []);
+  const innerW = Math.max(50, w - padding.left - padding.right);
+  const innerH = height - padding.top - padding.bottom;
+  const allVals = series.flatMap(s => s.data).filter(v => v != null && isFinite(v));
+  if (allVals.length === 0) return (
+    <div style={{height,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-faint)',fontSize:12}}>
+      No data for this period
+    </div>
+  );
+  const maxY = Math.max(...allVals, 1) * 1.1;
+  const N = series[0]?.data.length || 0;
+  if (N < 2) return <div style={{height,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-faint)',fontSize:12}}>Insufficient data</div>;
+  const x = i => padding.left + (i / Math.max(N - 1, 1)) * innerW;
+  const y = v => padding.top + innerH - ((v - 0) / maxY) * innerH;
+  const gridVals = [0, 0.25, 0.5, 0.75, 1].map(f => f * maxY);
+  function pathFor(data) {
+    return data.map((v, i) => `${i === 0 ? 'M' : 'L'} ${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ');
+  }
+  function areaFor(data) {
+    const top = data.map((v, i) => `${i === 0 ? 'M' : 'L'} ${x(i).toFixed(1)} ${y(v).toFixed(1)}`).join(' ');
+    return `${top} L ${x(N-1).toFixed(1)} ${(padding.top+innerH).toFixed(1)} L ${x(0).toFixed(1)} ${(padding.top+innerH).toFixed(1)} Z`;
+  }
+  function onMove(e) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const px = e.clientX - rect.left;
+    const idx = Math.max(0, Math.min(N - 1, Math.round(((px - padding.left) / innerW) * (N - 1))));
+    setHover({ idx, px: x(idx) });
+  }
+  return (
+    <div ref={wrapRef} style={{position:'relative',width:'100%'}}>
+      <svg width={w} height={height} onMouseMove={onMove} onMouseLeave={() => setHover(null)} style={{display:'block'}}>
+        {gridVals.map((v, i) => (
+          <g key={i}>
+            <line x1={padding.left} x2={w-padding.right} y1={y(v)} y2={y(v)} stroke="#ececec" strokeWidth="1"/>
+            <text x={padding.left-8} y={y(v)+3} fontSize="10" fontFamily="var(--mono)" fill="#a3a3a3" textAnchor="end">{formatY(v)}</text>
+          </g>
+        ))}
+        {xLabels && xLabels.map((lbl, i) => {
+          if (i % Math.ceil(xLabels.length / 6) !== 0 && i !== xLabels.length - 1) return null;
+          return <text key={i} x={x(i)} y={height-6} fontSize="10" fontFamily="var(--mono)" fill="#a3a3a3" textAnchor="middle">{lbl}</text>;
+        })}
+        {markers.map((m, i) => {
+          const mx = x(m.idx);
+          return (
+            <g key={i}>
+              <line x1={mx} x2={mx} y1={padding.top} y2={padding.top+innerH} stroke={m.color||'#525252'} strokeDasharray="3 3" strokeWidth="1"/>
+              <rect x={mx-22} y={padding.top-2} width={44} height={14} rx={3} fill={m.color||'#525252'}/>
+              <text x={mx} y={padding.top+8} fontSize="9.5" fontFamily="var(--mono)" fill="white" textAnchor="middle" fontWeight="500">{m.label}</text>
+            </g>
+          );
+        })}
+        {series[0]?.area && <path d={areaFor(series[0].data)} fill={series[0].color} opacity="0.07"/>}
+        {series.map((s, i) => (
+          <path key={i} d={pathFor(s.data)} stroke={s.color} strokeWidth={s.width||1.5} fill="none"
+            strokeLinejoin="round" strokeLinecap="round" strokeDasharray={s.dashed?'3 3':''}/>
+        ))}
+        {hover && (
+          <g>
+            <line x1={hover.px} x2={hover.px} y1={padding.top} y2={padding.top+innerH} stroke="#0a0a0a" strokeWidth="1" opacity="0.4"/>
+            {series.map((s, i) => <circle key={i} cx={hover.px} cy={y(s.data[hover.idx])} r="3" fill="white" stroke={s.color} strokeWidth="1.5"/>)}
+          </g>
+        )}
+      </svg>
+      {hover && series[0] && (
+        <div className="chart-tip" style={{left:hover.px, top:y(series[0].data[hover.idx])}}>
+          {series.map(s => `${s.name}: ${formatY(s.data[hover.idx])}`).join(' · ')}
+          {xLabels?.[hover.idx] ? `  ${xLabels[hover.idx]}` : ''}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Sparkline({ data, width = 80, height = 24, color = '#2563eb', stroke = 1.4 }) {
+  const d = (data || []).filter(v => isFinite(v));
+  if (d.length < 2) return <svg width={width} height={height} style={{display:'block'}}/>;
+  const max = Math.max(...d, 1), min = Math.min(...d, 0);
+  const range = Math.max(max - min, 1);
+  const xi = i => (i / Math.max(d.length - 1, 1)) * width;
+  const yi = v => height - 2 - ((v - min) / range) * (height - 4);
+  const path = d.map((v, i) => `${i === 0 ? 'M' : 'L'} ${xi(i).toFixed(1)} ${yi(v).toFixed(1)}`).join(' ');
+  return (
+    <svg width={width} height={height} style={{display:'block'}}>
+      <path d={path} fill="none" stroke={color} strokeWidth={stroke} strokeLinejoin="round" strokeLinecap="round"/>
+    </svg>
+  );
+}
+
+function StatusStackChart({ data, height = 200 }) {
+  const wrapRef = useRef(null);
+  const [w, setW] = useState(600);
+  useEffect(() => {
+    if (!wrapRef.current) return;
+    const ro = new ResizeObserver(() => wrapRef.current && setW(wrapRef.current.clientWidth));
+    ro.observe(wrapRef.current);
+    setW(wrapRef.current.clientWidth);
+    return () => ro.disconnect();
+  }, []);
+  const pad = {top:12,right:16,bottom:24,left:36};
+  const innerW = Math.max(50, w - pad.left - pad.right);
+  const innerH = height - pad.top - pad.bottom;
+  const totals = data.s2xx.map((_, i) => data.s2xx[i] + data.s4xx[i] + data.s5xx[i]);
+  const max = Math.max(...totals, 1);
+  const N = totals.length;
+  if (N < 2) return <div style={{height,display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text-faint)',fontSize:12}}>No data</div>;
+  const x = i => pad.left + (i / Math.max(N-1,1)) * innerW;
+  const ys = v => pad.top + innerH - (v / max) * innerH;
+  function stackedPath(values, offsets) {
+    const top = values.map((v, i) => `${i===0?'M':'L'} ${x(i).toFixed(1)} ${ys(offsets[i]+v).toFixed(1)}`).join(' ');
+    const bot = values.map((v, i) => `L ${x(N-1-i).toFixed(1)} ${ys(offsets[N-1-i]).toFixed(1)}`).join(' ');
+    return `${top} ${bot} Z`;
+  }
+  const off2 = new Array(N).fill(0);
+  const off4 = data.s2xx;
+  const off5 = data.s2xx.map((v, i) => v + data.s4xx[i]);
+  return (
+    <div ref={wrapRef} style={{position:'relative',width:'100%'}}>
+      <svg width={w} height={height} style={{display:'block'}}>
+        {[0,0.5,1].map((f,i) => (
+          <g key={i}>
+            <line x1={pad.left} x2={w-pad.right} y1={ys(f*max)} y2={ys(f*max)} stroke="#ececec"/>
+            <text x={pad.left-8} y={ys(f*max)+3} fontSize="10" fontFamily="var(--mono)" fill="#a3a3a3" textAnchor="end">{Math.round(f*max)}</text>
+          </g>
+        ))}
+        <path d={stackedPath(data.s2xx, off2)} fill="#15803d" opacity="0.85"/>
+        <path d={stackedPath(data.s4xx, off4)} fill="#b45309" opacity="0.85"/>
+        <path d={stackedPath(data.s5xx, off5)} fill="#b91c1c" opacity="0.9"/>
+      </svg>
+    </div>
+  );
+}
+
+// ─── Overview ─────────────────────────────────────────────────────────────────
+function Overview({ timeRange, setRoute, setParams }) {
+  const { ENDPOINTS, RELEASES, INSIGHTS, SUMMARY } = window.AF_DATA;
+  const [globalTs, setGlobalTs] = useState(null);
+  const hours = TIME_HOURS[timeRange] || 24;
+
+  useEffect(() => {
+    setGlobalTs(null);
+    fetch(`/api/global-timeseries?hours=${hours}`)
+      .then(r => r.json()).then(d => setGlobalTs(d)).catch(() => setGlobalTs([]));
+  }, [hours]);
+
+  const chartData   = globalTs ? tsBucketsToChart(globalTs, hours) : null;
+  const points      = Math.max(chartData?.p90?.length || 0, 2);
+  const xLabels     = chartData?.labels || [];
+  const fallbackPts = 24;
+
+  const globalP50   = chartData?.p50   || genSeries({base_p90:(SUMMARY.p90||100)*0.5}, fallbackPts, {seed:1});
+  const globalP90   = chartData?.p90   || genSeries({base_p90: SUMMARY.p90||100},       fallbackPts, {seed:2});
+  const globalP99   = chartData?.p99   || genSeries({base_p90:(SUMMARY.p90||100)*1.8},  fallbackPts, {seed:3});
+  const globalCalls = chartData?.calls || Array(fallbackPts).fill(0);
+  const xLabelsFinal = xLabels.length > 0 ? xLabels : Array.from({length:globalP90.length}, (_,i) => `${i}`);
+
+  const releaseMarkers = (RELEASES || []).slice(0,2).map((r, i) => ({
+    idx:   Math.min(Math.floor(globalP90.length * (0.45 + i * 0.35)), globalP90.length - 1),
+    label: r.tag,
+    color: i === 0 ? '#b91c1c' : '#15803d',
+  }));
+
+  const topSlow   = [...ENDPOINTS].filter(e => !e.untracked && e.base_p90 > 0).sort((a,b) => b.base_p90-a.base_p90).slice(0,5);
+  const topCalled = [...ENDPOINTS].sort((a,b) => b.calls24h-a.calls24h).slice(0,5);
+  const recentInsights = INSIGHTS.slice(0,4);
+  const availability   = SUMMARY.err_rate < 0.001 ? '99.9' : SUMMARY.err_rate < 0.01 ? '99.1' : '98.5';
+
+  return (
+    <div>
+      <div className="page-h">
+        <div>
+          <h1>API Overview</h1>
+          <div className="sub">Behavioral snapshot · last {timeRange}</div>
+        </div>
+      </div>
+
+      <div className="overview-grid">
+        <div className="card health-card">
+          <div className="health-label">API Health Score</div>
+          <div className="health-row">
+            <div className="health-num">{SUMMARY.health}<span className="denom">/100</span></div>
+            <div style={{flex:1}}>
+              <Sparkline data={genSeries({base_p90:SUMMARY.health||80},12,{seed:5})} width={160} height={36} color="var(--accent)"/>
+              <div className="health-trend"><I.arrowUp /> Live</div>
+            </div>
+          </div>
+          <div className="health-dims">
+            <div className="health-dim">
+              <div className="health-dim-label">Availability</div>
+              <div className="health-dim-val">{availability}<span style={{fontSize:11,color:'#a3a3a3'}}>%</span></div>
+            </div>
+            <div className="health-dim">
+              <div className="health-dim-label">P90</div>
+              <div className="health-dim-val">{SUMMARY.p90||'—'}<span style={{fontSize:11,color:'#a3a3a3'}}>ms</span></div>
+            </div>
+            <div className="health-dim">
+              <div className="health-dim-label">Active</div>
+              <div className="health-dim-val">{SUMMARY.active_endpoints}<span style={{fontSize:11,color:'#a3a3a3'}}>/{SUMMARY.total_endpoints}</span></div>
+            </div>
+            <div className="health-dim">
+              <div className="health-dim-label">Insights</div>
+              <div className="health-dim-val">{SUMMARY.insights_open}<span style={{fontSize:11,color:'#a3a3a3'}}> ⚠</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div className="stats-row" style={{margin:0,height:'100%'}}>
+          <div className="stat-cell">
+            <div className="stat-label">Requests</div>
+            <div className="stat-val">{fmtNum(SUMMARY.calls_24h)}<span className="unit">last {timeRange}</span></div>
+            <div className="stat-delta dim">total recorded</div>
+          </div>
+          <div className="stat-cell">
+            <div className="stat-label">Error rate</div>
+            <div className="stat-val">{fmtPct(SUMMARY.err_rate)}</div>
+            <div className={`stat-delta ${SUMMARY.err_rate < 0.01 ? 'up' : 'bad-up'}`}>
+              {SUMMARY.err_rate < 0.01 ? '✓ within threshold' : '⚠ above 1%'}
+            </div>
+          </div>
+          <div className="stat-cell">
+            <div className="stat-label">P90 latency</div>
+            <div className="stat-val">{SUMMARY.p90 || '—'}<span className="unit">ms</span></div>
+            <div className={`stat-delta ${(SUMMARY.p90||0) < 200 ? 'up' : 'bad-up'}`}>
+              {(SUMMARY.p90||0) < 200 ? '✓ good' : '⚠ above 200ms'}
+            </div>
+          </div>
+          <div className="stat-cell">
+            <div className="stat-label">Endpoints</div>
+            <div className="stat-val">{SUMMARY.active_endpoints}<span className="unit">/ {SUMMARY.total_endpoints}</span></div>
+            <div className="stat-delta dim">{SUMMARY.total_endpoints - SUMMARY.active_endpoints} not yet called</div>
+          </div>
+        </div>
+      </div>
+
+      {recentInsights.length > 0 && (
+        <div className="card" style={{marginBottom:16}}>
+          <div className="card-h">
+            <div className="card-h-title">Top insights</div>
+            <div className="card-h-sub">{INSIGHTS.length} total · {SUMMARY.insights_open} need attention</div>
+            <div className="card-h-actions">
+              <button className="btn btn-ghost" onClick={() => setRoute('insights')}>View all <I.arrowR /></button>
+            </div>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:recentInsights.length>1?'1fr 1fr':'1fr',gap:0}}>
+            {recentInsights.map((ins, i) => (
+              <div key={ins.id} className="insight"
+                style={{borderRadius:0,borderLeft:0,borderTop:0,
+                  borderRight: i%2===0 && i<recentInsights.length-1 ? '1px solid var(--border)' : 0,
+                  borderBottom: i<recentInsights.length-2 ? '1px solid var(--border)' : 0,
+                  cursor: ins.endpoint_id ? 'pointer' : 'default'}}
+                onClick={() => {
+                  if (ins.endpoint_id) { setRoute('endpoint'); setParams({id:ins.endpoint_id}); }
+                  else setRoute('insights');
+                }}>
+                <div className={`insight-ico insight-${ins.type}`}>{ins.type[0]}</div>
+                <div>
+                  <div className="insight-title">{ins.title}</div>
+                  <div className="insight-meta">
+                    {ins.endpoint && <span className="mono">{ins.endpoint}</span>}
+                    <span className="sep">·</span><span>{ins.ts}</span>
+                  </div>
+                </div>
+                <div className="insight-action">{ins.type}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {recentInsights.length === 0 && (
+        <div className="card" style={{marginBottom:16,padding:'14px 18px',display:'flex',alignItems:'center',gap:10}}>
+          <I.check /><span style={{color:'var(--ok)',fontSize:13}}>No active insights — your API looks healthy.</span>
+        </div>
+      )}
+
+      <div className="two-col" style={{marginBottom:16}}>
+        <div className="card">
+          <div className="card-h">
+            <div className="card-h-title">Latency percentiles</div>
+            <div className="card-h-sub">p50 · p90 · p99</div>
+            {globalTs === null && <div className="card-h-actions"><span className="spinner"></span></div>}
+          </div>
+          <div className="chart-legend">
+            <span><span className="dot" style={{background:'#a3a3a3'}}></span>p50</span>
+            <span><span className="dot" style={{background:'#2563eb'}}></span>p90</span>
+            <span><span className="dot" style={{background:'#b91c1c'}}></span>p99</span>
+            {chartData && <span style={{marginLeft:'auto',color:'var(--text-faint)',fontFamily:'var(--mono)',fontSize:11}}>{chartData.p90.length} buckets</span>}
+          </div>
+          <div className="chart-wrap">
+            <LineChart series={[
+              {name:'p50', data:globalP50, color:'#a3a3a3', width:1.2},
+              {name:'p90', data:globalP90, color:'#2563eb', width:1.6, area:true},
+              {name:'p99', data:globalP99, color:'#b91c1c', width:1.2, dashed:true},
+            ]} xLabels={xLabelsFinal} markers={releaseMarkers} height={240}/>
+          </div>
+        </div>
+        <div className="card">
+          <div className="card-h">
+            <div className="card-h-title">Traffic</div>
+            <div className="card-h-sub">total requests / bucket</div>
+          </div>
+          <div className="chart-wrap">
+            <LineChart series={[{name:'calls',data:globalCalls,color:'#0a0a0a',width:1.4,area:true}]}
+              xLabels={xLabelsFinal} height={240} formatY={v => fmtNum(v)}/>
+          </div>
+        </div>
+      </div>
+
+      <div className="two-col">
+        <div className="card">
+          <div className="card-h">
+            <div className="card-h-title">Slowest endpoints</div><div className="card-h-sub">by p90</div>
+            <div className="card-h-actions">
+              <button className="btn btn-ghost" onClick={() => setRoute('endpoints')}>All <I.arrowR /></button>
+            </div>
+          </div>
+          {topSlow.length === 0
+            ? <div className="empty-state">No latency data yet</div>
+            : <table className="tbl">
+                <thead><tr><th>Route</th><th className="num">P50</th><th className="num">P90</th><th className="num">P99</th><th>Trend</th></tr></thead>
+                <tbody>
+                  {topSlow.map(e => (
+                    <tr key={e.id} className="click" onClick={() => { setRoute('endpoint'); setParams({id:e.id}); }}>
+                      <td><span className={`method method-${e.method}`}>{e.method}</span>{' '}<span className="route">{e.route}</span></td>
+                      <td className="num">{e.base_p50}<span className="dim"> ms</span></td>
+                      <td className="num">{e.base_p90}<span className="dim"> ms</span></td>
+                      <td className="num">{e.base_p99}<span className="dim"> ms</span></td>
+                      <td><Sparkline data={genSeries(e,24)} color="#2563eb" width={64} height={20}/></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+          }
+        </div>
+        <div className="card">
+          <div className="card-h"><div className="card-h-title">Most called</div><div className="card-h-sub">last {timeRange}</div></div>
+          {topCalled.length === 0
+            ? <div className="empty-state">No traffic yet</div>
+            : <table className="tbl">
+                <thead><tr><th>Route</th><th className="num">Calls</th><th>Status</th></tr></thead>
+                <tbody>
+                  {topCalled.map(e => {
+                    const tot = e.calls24h || 1;
+                    return (
+                      <tr key={e.id} className="click" onClick={() => { setRoute('endpoint'); setParams({id:e.id}); }}>
+                        <td>
+                          <span className={`method method-${e.method}`}>{e.method}</span>{' '}
+                          <span className="route">{e.route}</span>
+                          {e.untracked && <span className="release-badge rb-warn" style={{marginLeft:8}}>UNTRACKED</span>}
+                        </td>
+                        <td className="num">{fmtNum(e.calls24h)}</td>
+                        <td>
+                          <div className="status-dist">
+                            <span className="s2xx" style={{flex:e.calls_2xx||1}}></span>
+                            <span className="s4xx" style={{flex:e.calls_4xx||0}}></span>
+                            <span className="s5xx" style={{flex:e.calls_5xx||0}}></span>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+          }
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Endpoints list ───────────────────────────────────────────────────────────
+function Endpoints({ setRoute, setParams }) {
+  const { ENDPOINTS } = window.AF_DATA;
+  const [q, setQ]               = useState('');
+  const [methodFilter, setMeth] = useState('ALL');
+  const [sortBy, setSortBy]     = useState('calls');
+  const [showUnt, setShowUnt]   = useState(true);
+
+  const filtered = useMemo(() => {
+    let list = ENDPOINTS.slice();
+    if (!showUnt) list = list.filter(e => !e.untracked);
+    if (methodFilter !== 'ALL') list = list.filter(e => e.method === methodFilter);
+    if (q) list = list.filter(e => (e.method + ' ' + e.route).toLowerCase().includes(q.toLowerCase()));
+    const sorters = {
+      calls: (a,b) => b.calls24h - a.calls24h,
+      p90:   (a,b) => b.base_p90 - a.base_p90,
+      err:   (a,b) => b.err - a.err,
+      route: (a,b) => a.route.localeCompare(b.route),
+    };
+    return list.sort(sorters[sortBy]);
+  }, [q, methodFilter, sortBy, showUnt, ENDPOINTS]);
+
+  const untrackedCount = ENDPOINTS.filter(e => e.untracked).length;
+
+  return (
+    <div>
+      <div className="page-h">
+        <div>
+          <h1>Endpoints</h1>
+          <div className="sub">{ENDPOINTS.length} discovered routes · {untrackedCount} never called</div>
+        </div>
+      </div>
+      <div className="filter-bar">
+        <div className="search">
+          <input placeholder="Search route or method…" value={q} onChange={e => setQ(e.target.value)}/>
+        </div>
+        <div className="chips">
+          {['ALL','GET','POST','PUT','PATCH','DELETE'].map(m => (
+            <button key={m} className={`chip ${methodFilter===m?'on':''}`} onClick={() => setMeth(m)}>{m}</button>
+          ))}
+        </div>
+        <div style={{flex:1}}/>
+        <select className="select" value={sortBy} onChange={e => setSortBy(e.target.value)}>
+          <option value="calls">Sort: most called</option>
+          <option value="p90">Sort: slowest (p90)</option>
+          <option value="err">Sort: most errors</option>
+          <option value="route">Sort: route a-z</option>
+        </select>
+        <button className={`btn ${showUnt?'':'btn-ghost'}`} onClick={() => setShowUnt(!showUnt)}>
+          {showUnt?'✓ ':''}Untracked
+        </button>
+      </div>
+      <div className="card">
+        {filtered.length === 0
+          ? <div className="empty-state">No endpoints match the current filters.</div>
+          : <table className="tbl">
+              <thead>
+                <tr><th style={{width:'36%'}}>Route</th><th className="num">Calls</th><th className="num">P50</th><th className="num">P90</th><th className="num">P99</th><th className="num">Error rate</th><th>Trend</th></tr>
+              </thead>
+              <tbody>
+                {filtered.map(e => (
+                  <tr key={e.id} className="click"
+                    onClick={() => { setRoute('endpoint'); setParams({id:e.id}); }}
+                    style={e.untracked ? {opacity:0.6} : null}>
+                    <td>
+                      <span className={`method method-${e.method}`}>{e.method}</span>{' '}
+                      <span className="route">{e.route}</span>
+                      {e.untracked && <span className="release-badge rb-warn" style={{marginLeft:8}}>UNTRACKED</span>}
+                    </td>
+                    <td className="num">{e.untracked ? '—' : fmtNum(e.calls24h)}</td>
+                    <td className="num">{e.base_p50 > 0 ? e.base_p50+'ms' : '—'}</td>
+                    <td className="num">{e.base_p90 > 0 ? e.base_p90+'ms' : '—'}</td>
+                    <td className="num">{e.base_p99 > 0 ? e.base_p99+'ms' : '—'}</td>
+                    <td className="num">
+                      {e.untracked ? '—' : (
+                        <span style={{display:'inline-flex',alignItems:'center',gap:8,justifyContent:'flex-end'}}>
+                          <span className="bar-inline" style={{width:50}}>
+                            <span style={{width:`${Math.min(100,e.err*1000)}%`,background:e.err>0.02?'var(--danger)':e.err>0.01?'var(--warn)':'var(--accent)'}}></span>
+                          </span>
+                          <span>{(e.err*100).toFixed(2)}%</span>
+                        </span>
+                      )}
+                    </td>
+                    <td>{e.untracked ? '—' : <Sparkline data={genSeries(e,24)} color="#2563eb" width={72} height={20}/>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+        }
+      </div>
+    </div>
+  );
+}
+
+// ─── Endpoint detail ──────────────────────────────────────────────────────────
+function EndpointDetail({ id, timeRange, setRoute, setParams }) {
+  const { ENDPOINTS, INSIGHTS } = window.AF_DATA;
+  const ep  = ENDPOINTS.find(e => e.id === id) || ENDPOINTS[0];
+  const [tab, setTab]       = useState('performance');
+  const [timeSeries, setTs] = useState(null);
+  const hours = TIME_HOURS[timeRange] || 24;
+
+  useEffect(() => {
+    if (!ep || !id) return;
+    const pipeIdx = id.indexOf('|');
+    const method  = id.substring(0, pipeIdx);
+    const route   = id.substring(pipeIdx + 1);
+    setTs(null);
+    fetch(`/api/timeseries?route=${encodeURIComponent(route)}&method=${encodeURIComponent(method)}&hours=${hours}`)
+      .then(r => r.json()).then(d => setTs(d)).catch(() => setTs([]));
+  }, [id, hours]);
+
+  if (!ep) return <div className="empty-state">Endpoint not found.</div>;
+
+  const chartData = timeSeries ? tsBucketsToChart(timeSeries, hours) : null;
+  const pts       = Math.max(chartData?.p90?.length || 0, 24);
+  const xLbls     = chartData?.labels || Array.from({length:24}, (_,i) => `${i}h`);
+
+  const p50   = chartData?.p50   || genSeries({...ep, base_p90:ep.base_p50},  pts, {seed:1});
+  const p90   = chartData?.p90   || genSeries(ep, pts, {seed:2});
+  const p99   = chartData?.p99   || genSeries({...ep, base_p90:ep.base_p99},  pts, {seed:3});
+  const calls = chartData?.calls || genCallSeries(ep, pts);
+  const errs  = chartData?.errors|| genErrorSeries(ep, pts);
+  const ok2   = calls.map((c,i) => Math.max(0, c - (errs[i]||0)));
+  const e4    = errs.map(v => Math.round(v * 0.65));
+  const e5    = errs.map((v,i) => v - e4[i]);
+
+  const relatedInsights = INSIGHTS.filter(i => i.endpoint_id === ep.id);
+
+  return (
+    <div>
+      <div className="page-h">
+        <div>
+          <h1>
+            <span className={`method method-${ep.method}`} style={{fontSize:12,verticalAlign:'middle',marginRight:10}}>{ep.method}</span>
+            <span className="mono" style={{fontSize:22}}>{ep.route}</span>
+          </h1>
+          <div className="sub">
+            {ep.untracked
+              ? 'Declared in router — no requests recorded yet'
+              : `${fmtNum(ep.calls24h)} calls · ${fmtPct(ep.err)} error rate`}
+          </div>
+        </div>
+      </div>
+
+      <div className="stats-row" style={{marginBottom:16}}>
+        <div className="stat-cell">
+          <div className="stat-label">Calls</div>
+          <div className="stat-val">{ep.untracked ? '—' : fmtNum(ep.calls24h)}</div>
+          <div className="stat-delta dim">last {timeRange}</div>
+        </div>
+        <div className="stat-cell">
+          <div className="stat-label">P90 latency</div>
+          <div className="stat-val">{ep.base_p90 || '—'}<span className="unit">ms</span></div>
+          <div className={`stat-delta ${(ep.base_p90||0) < 200 ? 'up' : 'bad-up'}`}>
+            {(ep.base_p90||0) < 200 ? '✓ good' : '⚠ slow'}
+          </div>
+        </div>
+        <div className="stat-cell">
+          <div className="stat-label">Error rate</div>
+          <div className="stat-val">{ep.untracked ? '—' : fmtPct(ep.err)}</div>
+          <div className={`stat-delta ${ep.err < 0.01 ? 'up' : 'bad-up'}`}>
+            {ep.err < 0.01 ? '✓ good' : '⚠ above 1%'}
+          </div>
+        </div>
+        <div className="stat-cell">
+          <div className="stat-label">2xx / 4xx / 5xx</div>
+          <div className="stat-val" style={{fontSize:16}}>{fmtNum(ep.calls_2xx)}<span className="unit">ok</span></div>
+          <div className="stat-delta dim">{fmtNum(ep.calls_4xx)} client · {fmtNum(ep.calls_5xx)} server</div>
+        </div>
+      </div>
+
+      <div className="tabs">
+        <button className={`tab ${tab==='performance'?'active':''}`} onClick={() => setTab('performance')}>Performance</button>
+        <button className={`tab ${tab==='errors'?'active':''}`} onClick={() => setTab('errors')}>Errors & Status</button>
+        <button className={`tab ${tab==='insights'?'active':''}`} onClick={() => setTab('insights')}>
+          Insights{relatedInsights.length > 0 && <span className="mono dim" style={{marginLeft:4}}>({relatedInsights.length})</span>}
+        </button>
+      </div>
+
+      {tab === 'performance' && (
+        <div>
+          <div className="card" style={{marginBottom:16}}>
+            <div className="card-h">
+              <div className="card-h-title">Latency over {timeRange}</div>
+              <div className="card-h-sub">percentiles</div>
+              {timeSeries === null && <div className="card-h-actions"><span className="spinner"></span></div>}
+            </div>
+            <div className="chart-legend">
+              <span><span className="dot" style={{background:'#a3a3a3'}}></span>p50 · {ep.base_p50||'—'}ms</span>
+              <span><span className="dot" style={{background:'#2563eb'}}></span>p90 · {ep.base_p90||'—'}ms</span>
+              <span><span className="dot" style={{background:'#b91c1c'}}></span>p99 · {ep.base_p99||'—'}ms</span>
+            </div>
+            <div className="chart-wrap">
+              <LineChart series={[
+                {name:'p50', data:p50, color:'#a3a3a3', width:1.2},
+                {name:'p90', data:p90, color:'#2563eb', width:1.6, area:true},
+                {name:'p99', data:p99, color:'#b91c1c', width:1.2, dashed:true},
+              ]} xLabels={xLbls} height={260}/>
+            </div>
+          </div>
+          <div className="two-col">
+            <div className="card">
+              <div className="card-h"><div className="card-h-title">Traffic volume</div><div className="card-h-sub">requests / bucket</div></div>
+              <div className="chart-wrap">
+                <LineChart series={[{name:'calls',data:calls,color:'#0a0a0a',area:true}]} xLabels={xLbls} height={200} formatY={v => fmtNum(v)}/>
+              </div>
+            </div>
+            <div className="card">
+              <div className="card-h"><div className="card-h-title">5xx errors</div><div className="card-h-sub">over time</div></div>
+              <div className="chart-wrap">
+                <LineChart series={[{name:'errors',data:e5,color:'#b91c1c',area:true}]} xLabels={xLbls} height={200} formatY={v => String(Math.round(v))}/>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {tab === 'errors' && (
+        <div>
+          <div className="card" style={{marginBottom:16}}>
+            <div className="card-h"><div className="card-h-title">Status code distribution</div><div className="card-h-sub">stacked over time</div></div>
+            <div className="chart-legend">
+              <span><span className="dot" style={{background:'#15803d'}}></span>2xx · {fmtNum(ep.calls_2xx)}</span>
+              <span><span className="dot" style={{background:'#b45309'}}></span>4xx · {fmtNum(ep.calls_4xx)}</span>
+              <span><span className="dot" style={{background:'#b91c1c'}}></span>5xx · {fmtNum(ep.calls_5xx)}</span>
+            </div>
+            <div className="chart-wrap">
+              <StatusStackChart data={{s2xx:ok2, s4xx:e4, s5xx:e5}} height={220}/>
+            </div>
+          </div>
+          <div className="card">
+            <div className="card-h"><div className="card-h-title">Status breakdown</div><div className="card-h-sub">all time</div></div>
+            <table className="tbl">
+              <thead><tr><th>Category</th><th className="num">Count</th><th className="num">Rate</th></tr></thead>
+              <tbody>
+                {[['2xx','Success',ep.calls_2xx,'#15803d'],['4xx','Client error',ep.calls_4xx,'#b45309'],['5xx','Server error',ep.calls_5xx,'#b91c1c']].map(([code,desc,count,col]) => (
+                  <tr key={code}>
+                    <td><span className="release-badge" style={{background:'rgba(0,0,0,0.05)',color:col}}>{code}</span> <span className="dim">{desc}</span></td>
+                    <td className="num">{fmtNum(count)}</td>
+                    <td className="num">{ep.calls24h > 0 ? ((count/ep.calls24h)*100).toFixed(2)+'%' : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {tab === 'insights' && (
+        <div className="insight-feed">
+          {relatedInsights.length === 0 && (
+            <div className="card card-b dim" style={{textAlign:'center',padding:32}}>
+              <I.check /> No active insights for this endpoint.
+            </div>
+          )}
+          {relatedInsights.map(ins => (
+            <div key={ins.id} className="insight">
+              <div className={`insight-ico insight-${ins.type}`}>{ins.type[0]}</div>
+              <div>
+                <div className="insight-title">{ins.title}</div>
+                <div className="insight-meta"><span className="mono">{ins.endpoint}</span><span className="sep">·</span><span>{ins.ts}</span></div>
+              </div>
+              <div className="insight-action">{ins.type}</div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Insights ─────────────────────────────────────────────────────────────────
+function Insights({ setRoute, setParams }) {
+  const { INSIGHTS } = window.AF_DATA;
+  const [typeFilter, setTypeFilter] = useState('ALL');
+  const [sevFilter,  setSevFilter]  = useState('ALL');
+
+  const types = [
+    {id:'ALL',label:'All'},{id:'PERF',label:'Performance'},
+    {id:'ANOMALY',label:'Anomaly'},{id:'DEAD',label:'Dead'},
+    {id:'UNTRACKED',label:'Untracked'},{id:'OK',label:'OK'},
+  ];
+  const filtered = INSIGHTS.filter(i =>
+    (typeFilter === 'ALL' || i.type === typeFilter) &&
+    (sevFilter  === 'ALL' || i.severity === sevFilter)
+  );
+  const grouped = {
+    high: filtered.filter(i => i.severity === 'high'),
+    med:  filtered.filter(i => i.severity === 'med'),
+    low:  filtered.filter(i => i.severity === 'low'),
+    info: filtered.filter(i => i.severity === 'info'),
+  };
+  const sevLabel = {high:'Needs attention', med:'Watch closely', low:'Low priority', info:'For your info'};
+  const sevColor = {high:'var(--danger)', med:'var(--warn)', low:'var(--neutral)', info:'var(--ok)'};
+
+  return (
+    <div>
+      <div className="page-h">
+        <div><h1>Insights</h1><div className="sub">{INSIGHTS.length} automatic insights from your API behavior</div></div>
+      </div>
+      <div className="filter-bar">
+        <div className="chips">
+          {types.map(t => (
+            <button key={t.id} className={`chip ${typeFilter===t.id?'on':''}`} onClick={() => setTypeFilter(t.id)}>{t.label}</button>
+          ))}
+        </div>
+        <div style={{flex:1}}/>
+        <select className="select" value={sevFilter} onChange={e => setSevFilter(e.target.value)}>
+          <option value="ALL">All severities</option>
+          <option value="high">High</option>
+          <option value="med">Medium</option>
+          <option value="low">Low</option>
+          <option value="info">Info</option>
+        </select>
+      </div>
+      {Object.entries(grouped).map(([sev, items]) => {
+        if (items.length === 0) return null;
+        return (
+          <div key={sev} className="insight-group">
+            <h3 className="insight-group-h">
+              <span style={{width:6,height:6,borderRadius:'50%',display:'inline-block',background:sevColor[sev]}}></span>
+              {sevLabel[sev]}<span className="cnt">{items.length}</span>
+            </h3>
+            <div className="insight-feed">
+              {items.map(ins => (
+                <div key={ins.id} className="insight"
+                  style={{cursor:ins.endpoint_id?'pointer':'default'}}
+                  onClick={() => { if (ins.endpoint_id) { setRoute('endpoint'); setParams({id:ins.endpoint_id}); } }}>
+                  <div className={`insight-ico insight-${ins.type}`}>{ins.type[0]}</div>
+                  <div>
+                    <div className="insight-title">{ins.title}</div>
+                    <div className="insight-meta">
+                      {ins.endpoint && <span className="mono">{ins.endpoint}</span>}
+                      <span className="sep">·</span><span>{ins.ts}</span>
+                    </div>
+                  </div>
+                  <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:4}}>
+                    <span className="insight-action">{ins.type}</span>
+                    <span className="mono dim" style={{fontSize:11}}>{ins.ts}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+      {filtered.length === 0 && <div className="card card-b dim" style={{textAlign:'center',padding:48}}>No insights match the current filters.</div>}
+    </div>
+  );
+}
+
+// ─── Releases ─────────────────────────────────────────────────────────────────
+function Releases() {
+  const { RELEASES } = window.AF_DATA;
+  const [selected, setSelected] = useState(RELEASES[0]?.tag || '');
+  const sel = RELEASES.find(r => r.tag === selected);
+
+  if (RELEASES.length === 0) {
+    return (
+      <div>
+        <div className="page-h"><div><h1>Releases</h1><div className="sub">Auto-correlation between deploys and API behavior</div></div></div>
+        <div className="card card-b" style={{textAlign:'center',padding:48,color:'var(--text-dim)'}}>
+          <div style={{marginBottom:12}}>No releases tracked yet.</div>
+          <div style={{fontSize:12,marginBottom:12}}>Set the <span className="mono">release</span> option when initializing the SDK:</div>
+          <CodeBlock>{`apiforge({ mode: 'local', release: 'v1.0.0' })`}</CodeBlock>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="page-h">
+        <div>
+          <h1>Releases</h1>
+          <div className="sub">Auto-correlation between deploys and API behavior · {RELEASES.length} releases tracked</div>
+        </div>
+      </div>
+      <div className="card" style={{marginBottom:16}}>
+        <div className="card-h"><div className="card-h-title">Deploy history</div><div className="card-h-sub">{RELEASES.length} releases</div></div>
+        <div className="release-list">
+          {RELEASES.map(r => (
+            <div key={r.tag} className={`release-row ${selected===r.tag?'selected':''}`} onClick={() => setSelected(r.tag)}>
+              <span className="release-dot"></span>
+              <span className="release-tag">{r.tag}</span>
+              <span className="dim" style={{fontSize:12,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{r.summary}</span>
+              <span className="release-meta"><span>{r.age}</span><span>·</span><span>{r.by}</span></span>
+              <span className={`release-badge rb-${r.status}`}>{r.status==='bad'?'REGRESSION':r.status==='warn'?'WATCH':'OK'}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      {sel && (
+        <div className="card">
+          <div className="card-h">
+            <div className="card-h-title">{sel.tag}</div>
+            <div className="card-h-sub">{sel.age} · {sel.summary}</div>
+            <div className="card-h-actions"><span className="release-badge rb-ok">NO REGRESSION</span></div>
+          </div>
+          <div style={{padding:'14px 18px',fontSize:12,color:'var(--text-muted)'}}>
+            Comparison data requires traffic both before and after the release window. Keep sending requests to build up data for richer release analytics.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Settings ─────────────────────────────────────────────────────────────────
+function Settings() {
+  const [retention, setRetention] = useState(30);
+  const [sampling,  setSampling]  = useState(100);
+  const [autoStart, setAutoStart] = useState(true);
+  const [saasSync,  setSaasSync]  = useState(false);
+
+  return (
+    <div>
+      <div className="page-h"><div><h1>Settings</h1><div className="sub">Local-only configuration</div></div></div>
+      <div className="card" style={{marginBottom:16}}>
+        <div className="card-h"><div className="card-h-title">Storage</div></div>
+        <div className="settings-list">
+          <div className="setting-row">
+            <div>
+              <div className="setting-title">Database location</div>
+              <div className="setting-desc">Single SQLite file. Configured via the <span className="mono">dbPath</span> SDK option.</div>
+            </div>
+            <span className="mono" style={{fontSize:12,color:'var(--text-muted)'}}>see SDK config</span>
+          </div>
+          <div className="setting-row">
+            <div>
+              <div className="setting-title">Retention</div>
+              <div className="setting-desc">How long to keep aggregated metrics buckets.</div>
+            </div>
+            <div style={{display:'flex',gap:8,alignItems:'center'}}>
+              <input className="fld" type="number" value={retention} onChange={e => setRetention(+e.target.value)} style={{width:80}}/>
+              <span className="dim">days</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="card" style={{marginBottom:16}}>
+        <div className="card-h"><div className="card-h-title">SDK behavior</div></div>
+        <div className="settings-list">
+          <div className="setting-row">
+            <div>
+              <div className="setting-title">Sampling rate</div>
+              <div className="setting-desc">Percentage of requests instrumented. Reduce at very high throughput.</div>
+            </div>
+            <div style={{display:'flex',gap:8,alignItems:'center'}}>
+              <input className="fld" type="number" value={sampling} min={1} max={100} onChange={e => setSampling(+e.target.value)} style={{width:80}}/>
+              <span className="dim">%</span>
+            </div>
+          </div>
+          <div className="setting-row">
+            <div>
+              <div className="setting-title">Start dashboard with SDK</div>
+              <div className="setting-desc">Expose dashboard automatically in dev mode.</div>
+            </div>
+            <div className={`toggle ${autoStart?'on':''}`} onClick={() => setAutoStart(!autoStart)}></div>
+          </div>
+        </div>
+      </div>
+      <div className="card" style={{marginBottom:16}}>
+        <div className="card-h">
+          <div className="card-h-title">Cloud sync</div>
+          <div className="card-h-sub">optional · disabled by default</div>
+        </div>
+        <div className="settings-list">
+          <div className="setting-row">
+            <div>
+              <div className="setting-title">Sync aggregates to APIForge Cloud</div>
+              <div className="setting-desc">Sends <strong>anonymized aggregates only</strong>. No payloads, headers, IPs.</div>
+            </div>
+            <div className={`toggle ${saasSync?'on':''}`} onClick={() => setSaasSync(!saasSync)}></div>
+          </div>
+          {saasSync && (
+            <div className="setting-row">
+              <div><div className="setting-title">API key</div></div>
+              <input className="fld" placeholder="apf_…" style={{width:280}}/>
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="card">
+        <div className="card-h"><div className="card-h-title">Privacy</div></div>
+        <div className="card-b" style={{fontSize:12,color:'var(--text-muted)',lineHeight:1.7}}>
+          <strong style={{color:'var(--text)'}}>Collected</strong> · route patterns, HTTP methods, status codes, latency percentiles, timestamps.<br/>
+          <strong style={{color:'var(--text)'}}>Never collected</strong> · request/response bodies, headers, query parameter values, IP addresses, user agents.<br/>
+          All data stays on your machine by default. Cloud sync is opt-in.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Onboarding modal ─────────────────────────────────────────────────────────
+function Onboarding({ onClose }) {
+  const [step, setStep] = useState(0);
+  const [installed,  setInstalled]  = useState(false);
+  const [integrated, setIntegrated] = useState(false);
+  const [receiving,  setReceiving]  = useState(false);
+
+  useEffect(() => {
+    if (step === 0) { const t = setTimeout(() => setInstalled(true),  1800); return () => clearTimeout(t); }
+    if (step === 1) { const t = setTimeout(() => setIntegrated(true), 1400); return () => clearTimeout(t); }
+    if (step === 2) { const t = setTimeout(() => setReceiving(true),  2200); return () => clearTimeout(t); }
+  }, [step]);
+
+  const integrationCode = `const express = require('express');
+const apiforge = require('apiforgejs');
+
+const app = express();
+app.use(apiforge({ mode: 'local' }));
+
+app.get('/users/:id', (req, res) => {
+  res.json({ id: req.params.id });
+});
+
+app.listen(3000);`;
+
+  return (
+    <Modal onClose={onClose}>
+      <div className="modal-h">
+        <div className="sb-logo" style={{width:28,height:28,fontSize:13}}>AF</div>
+        <div>
+          <div style={{fontSize:15,fontWeight:600}}>Connect your first service</div>
+          <div className="dim" style={{fontSize:12}}>3 steps · ~2 minutes · no account needed</div>
+        </div>
+        <div style={{flex:1}}/>
+        <button className="btn btn-ghost" onClick={onClose}><I.close /></button>
+      </div>
+      <div className="modal-b">
+        <div className={`onb-step ${installed?'done':step===0?'active':''}`}>
+          <div className="onb-num">{installed ? <I.check /> : '1'}</div>
+          <div className="onb-content">
+            <div className="onb-title">Install the SDK</div>
+            <div className="onb-desc">Express.js · Node.js 22.5+ required.</div>
+            <CodeBlock>npm install apiforgejs</CodeBlock>
+            <div className={`waiting ${installed?'live':''}`} style={{marginTop:10}}>
+              {installed ? <><I.check /> Installed apiforgejs</> : <><span className="spinner"></span> Waiting for npm install…</>}
+            </div>
+          </div>
+        </div>
+        <div className={`onb-step ${integrated?'done':installed?'active':''}`} style={{opacity:installed?1:0.45}}>
+          <div className="onb-num">{integrated ? <I.check /> : '2'}</div>
+          <div className="onb-content">
+            <div className="onb-title">Add one line to your app</div>
+            <div className="onb-desc">No agent, no daemon. Runs inside your process.</div>
+            <CodeBlock>{integrationCode}</CodeBlock>
+            {installed && !integrated && (
+              <button className="btn btn-primary" style={{marginTop:10}} onClick={() => { setIntegrated(true); setStep(2); }}>I've added it →</button>
+            )}
+            {integrated && <div className="waiting live" style={{marginTop:10}}><I.check /> Code committed</div>}
+          </div>
+        </div>
+        <div className={`onb-step ${receiving?'done':integrated?'active':''}`} style={{opacity:integrated?1:0.45}}>
+          <div className="onb-num">{receiving ? <I.check /> : '3'}</div>
+          <div className="onb-content">
+            <div className="onb-title">Receive your first event</div>
+            <div className="onb-desc">Make any request to your API.</div>
+            <div className={`waiting ${receiving?'live':''}`} style={{marginTop:4}}>
+              {receiving
+                ? <><I.check /> First request received!</>
+                : integrated ? <><span className="spinner"></span> Listening… make a request</>
+                : <span className="dim">Waiting for previous step</span>}
+            </div>
+          </div>
+        </div>
+        <div style={{marginTop:12,padding:14,background:'var(--bg-elev)',borderRadius:6,fontSize:12,color:'var(--text-muted)',lineHeight:1.6}}>
+          <strong style={{color:'var(--text)'}}>Collected</strong> · route patterns, status codes, latency, timestamps.<br/>
+          <strong style={{color:'var(--text)'}}>Never collected</strong> · request/response bodies, headers, query values, IPs. Ever.
+        </div>
+      </div>
+      <div className="modal-f">
+        <span className="dim" style={{fontSize:12,alignSelf:'center'}}>No account or cloud required.</span>
+        <div className="row gap-2">
+          <button className="btn" onClick={onClose}>Close</button>
+          {receiving && <button className="btn btn-primary" onClick={onClose}>Go to dashboard <I.arrowR /></button>}
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+// ─── App root ─────────────────────────────────────────────────────────────────
+function App() {
+  const [route,     setRoute]    = useState('overview');
+  const [params,    setParams]   = useState({});
+  const [timeRange, setTimeRange]= useState('24h');
+  const [env,       setEnv]      = useState('production');
+  const [onboarding,setOnboarding]=useState(false);
+  const [loading,   setLoading]  = useState(true);
+  const [error,     setError]    = useState(null);
+  const [data,      setData]     = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const hours = TIME_HOURS[timeRange] || 24;
+  const hoursRef = useRef(hours);
+  hoursRef.current = hours;
+
+  const fetchData = useRef(null);
+  fetchData.current = async function() {
+    try {
+      const h = hoursRef.current;
+      const [summary, routes, releases] = await Promise.all([
+        fetch('/api/summary').then(r => r.json()),
+        fetch(`/api/routes?hours=${h}`).then(r => r.json()),
+        fetch('/api/releases').then(r => r.json()).catch(() => []),
+      ]);
+      const endpoints    = mapEndpoints(routes);
+      const insights     = mapInsights(summary.insights || []);
+      const releasesData = mapReleases(releases);
+      const summaryData  = {
+        health:           Math.round(summary.health_score || 0),
+        calls_24h:        summary.calls_24h || 0,
+        err_rate:         (summary.error_rate_24h || 0) / 100,
+        p90:              Math.round(summary.avg_p90_24h || 0),
+        active_endpoints: summary.active_routes || 0,
+        total_endpoints:  endpoints.length,
+        insights_open:    insights.filter(i => i.severity === 'high').length,
+      };
+      window.AF_DATA = { ENDPOINTS: endpoints, INSIGHTS: insights, RELEASES: releasesData, SUMMARY: summaryData };
+      setData({ endpoints, insights, releases: releasesData, summary: summaryData });
+      setLastUpdated(Date.now());
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData.current();
+    const id = setInterval(() => fetchData.current(), 30_000);
+    return () => clearInterval(id);
+  }, [hours]);
+
+  if (loading) return (
+    <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',gap:12,flexDirection:'column'}}>
+      <span className="spinner" style={{width:20,height:20}}></span>
+      <span style={{color:'var(--text-muted)',fontSize:13}}>Loading dashboard…</span>
+    </div>
+  );
+
+  if (error) return (
+    <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',flexDirection:'column',gap:12}}>
+      <div style={{color:'var(--danger)',fontWeight:500}}>Failed to load dashboard data</div>
+      <div style={{color:'var(--text-muted)',fontSize:12,fontFamily:'var(--mono)'}}>{error}</div>
+      <button className="btn btn-primary" onClick={() => { setLoading(true); fetchData(); }}>Retry</button>
+    </div>
+  );
+
+  const counts = {
+    endpoints: data.endpoints.length,
+    insights:  data.insights.filter(i => i.severity === 'high').length || 0,
+    releases:  data.releases.length || 0,
+  };
+  const getEndpoint = id => data.endpoints.find(e => e.id === id);
+
+  return (
+    <div className="app">
+      <Sidebar route={route}
+        setRoute={r => { setRoute(r); setParams({}); }}
+        onOpenOnboarding={() => setOnboarding(true)}
+        counts={counts}/>
+      <div className="main">
+        <Topbar route={route} params={params} setRoute={setRoute}
+          timeRange={timeRange} setTimeRange={setTimeRange}
+          env={env} setEnv={setEnv} getEndpoint={getEndpoint}
+          lastUpdated={lastUpdated} onRefresh={() => fetchData.current()}/>
+        <div className="content">
+          <div className="content-inner">
+            {route === 'overview'  && <Overview  timeRange={timeRange} setRoute={setRoute} setParams={setParams}/>}
+            {route === 'endpoints' && <Endpoints setRoute={setRoute} setParams={setParams}/>}
+            {route === 'endpoint'  && <EndpointDetail id={params.id} timeRange={timeRange} setRoute={setRoute} setParams={setParams}/>}
+            {route === 'insights'  && <Insights  setRoute={setRoute} setParams={setParams}/>}
+            {route === 'releases'  && <Releases/>}
+            {route === 'settings'  && <Settings/>}
+          </div>
+        </div>
+      </div>
+      {onboarding && <Onboarding onClose={() => setOnboarding(false)}/>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

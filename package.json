@@ -1,0 +1,33 @@
+{
+  "name": "apiforgejs",
+  "version": "0.1.0",
+  "description": "API observability & intelligence SDK for Express.js — local-first, privacy-first",
+  "main": "src/index.js",
+  "keywords": [
+    "api", "observability", "monitoring", "express", "metrics",
+    "performance", "analytics", "middleware", "latency", "local-first"
+  ],
+  "author": "APIForge",
+  "license": "MIT",
+  "scripts": {
+    "test": "node --test test/**/*.test.js",
+    "test:smoke": "node --test test/smoke.test.js"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "dependencies": {
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  },
+  "peerDependencies": {
+    "express": ">=4.0.0"
+  },
+  "files": [
+    "src/"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/APIForge-Organisation/sdk-nodejs"
+  }
+}
