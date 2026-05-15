@@ -33,7 +33,7 @@ function detectUntrackedRoutes(db) {
     severity: 'info',
     route: r.route,
     method: r.method,
-    message: `\`${r.method} ${r.route}\` est déclaré dans l'application mais n'a reçu aucune requête depuis le début du monitoring.`,
+    message: `\`${r.method} ${r.route}\` is declared but has received no requests since monitoring started.`,
     data: { first_seen_ts: r.first_seen },
   }));
 }
@@ -69,7 +69,7 @@ function detectLatencyAnomalies(db) {
         severity: 'warning',
         route: r.route,
         method: r.method,
-        message: `La latence P99 de \`${r.method} ${r.route}\` est anormalement élevée cette heure (${fmt(r.avg_p99)} vs moyenne ${fmt(mean)} — Z-score ${z.toFixed(1)}).`,
+        message: `\`${r.method} ${r.route}\` P99 latency is abnormally high this hour (${fmt(r.avg_p99)} vs baseline ${fmt(mean)} — Z-score ${z.toFixed(1)}).`,
         data: { current_p99: r.avg_p99, baseline_p99: mean, z_score: z },
       });
     }
@@ -87,7 +87,7 @@ function detectDeadEndpoints(db) {
       severity: 'info',
       route: row.route,
       method: row.method,
-      message: `\`${row.method} ${row.route}\` n'a reçu aucune requête depuis ${daysSince} jours. Candidat à la déprécation.`,
+      message: `\`${row.method} ${row.route}\` has received no requests in ${daysSince} days. Consider deprecating this endpoint.`,
       data: { last_seen_ts: row.last_seen, inactive_days: daysSince },
     };
   });
@@ -115,7 +115,7 @@ function detectReleaseRegressions(db) {
         severity: 'error',
         route: a.route,
         method: a.method,
-        message: `La latence P90 de \`${a.method} ${a.route}\` a augmenté de ${pct(delta)} depuis le déploiement ${release_tag}. Avant : ${fmt(b.avg_p90)} — Après : ${fmt(a.avg_p90)}.`,
+        message: `\`${a.method} ${a.route}\` P90 increased by ${pct(delta)} after ${release_tag}. Before: ${fmt(b.avg_p90)} — After: ${fmt(a.avg_p90)}.`,
         data: {
           release: release_tag,
           before_p90: b.avg_p90,
@@ -129,7 +129,7 @@ function detectReleaseRegressions(db) {
         severity: 'success',
         route: a.route,
         method: a.method,
-        message: `Le déploiement ${release_tag} a amélioré \`${a.method} ${a.route}\` de ${pct(-delta)}. Avant : ${fmt(b.avg_p90)} — Après : ${fmt(a.avg_p90)}.`,
+        message: `${release_tag} improved \`${a.method} ${a.route}\` by ${pct(-delta)}. Before: ${fmt(b.avg_p90)} — After: ${fmt(a.avg_p90)}.`,
         data: {
           release: release_tag,
           before_p90: b.avg_p90,
