@@ -24,10 +24,10 @@ describe('apiforgejs — smoke tests', () => {
     mw.shutdown?.();
   });
 
-  it('throws on unsupported mode', () => {
+  it('throws when only one of cloudUrl/apiKey is provided', () => {
     assert.throws(
-      () => apiforge({ mode: 'saas' }),
-      /mode 'saas' is not yet supported/
+      () => apiforge({ cloudUrl: 'https://api.apiforge.fr' }),
+      /requires both cloudUrl and apiKey/
     );
   });
 
