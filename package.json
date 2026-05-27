@@ -1,6 +1,6 @@
 {
   "name": "apiforgejs",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "API observability & intelligence SDK for Express.js — local-first, privacy-first",
   "main": "src/index.js",
   "keywords": [
@@ -23,6 +23,11 @@
   },
   "engines": {
     "node": ">=22.5.0"
+  },
+  "dependencies": {
+    "@babel/standalone": "^7.27.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   },
   "peerDependencies": {
     "express": ">=4.0.0"

@@ -58,14 +58,15 @@ function apiforge(options = {}) {
   const aggregator = new Aggregator(transport, config.flushInterval);
   aggregator.start();
 
-  if (!isCloud && config.dashboardPort) {
-    startDashboard(db, config.dashboardPort);
-  }
+  const dashboardServer = (!isCloud && config.dashboardPort)
+    ? startDashboard(db, config.dashboardPort)
+    : null;
 
   const middleware = createInterceptor(aggregator, db, config);
 
   middleware.shutdown = () => {
     aggregator.stop();
+    if (dashboardServer) dashboardServer.close();
     if (db) db.close();
   };
 
