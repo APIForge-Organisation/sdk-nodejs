@@ -23,6 +23,7 @@ function resolveAsset(pkg, file) {
 
 const REACT_PATH     = resolveAsset('react', 'react.production.min.js');
 const REACT_DOM_PATH = resolveAsset('react-dom', 'react-dom.production.min.js');
+const BABEL_PATH     = resolveAsset('@babel/standalone', 'babel.min.js');
 
 function startDashboard(db, port) {
   const server = http.createServer((req, res) => {
@@ -74,6 +75,16 @@ function route(req, res, url, db) {
     } else {
       res.writeHead(404);
       res.end('// react-dom not found — run npm install inside apiforgejs');
+    }
+    return;
+  }
+
+  if (req.method === 'GET' && pathname === '/assets/babel.js') {
+    if (BABEL_PATH) {
+      serveFile(res, BABEL_PATH, 'application/javascript');
+    } else {
+      res.writeHead(404);
+      res.end('// @babel/standalone not found — run npm install inside apiforgejs');
     }
     return;
   }
