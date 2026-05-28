@@ -17,6 +17,19 @@ class CloudTransport {
     this._openUntil = 0;
   }
 
+  writeRoutes(routes) {
+    if (routes.length === 0) return;
+    fetch(`${this._url}/routes`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'X-API-Key': this._apiKey },
+      body:    JSON.stringify({
+        routes: routes.map(r => ({ route: r.route, method: r.method, service: this._service })),
+      }),
+    }).catch(err => {
+      console.warn(`[apiforgejs] Failed to sync route registry: ${err.message}`);
+    });
+  }
+
   write(rows) {
     if (rows.length === 0) return;
     if (Date.now() < this._openUntil) return;
