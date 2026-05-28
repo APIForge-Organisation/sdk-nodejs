@@ -41,7 +41,7 @@ function routerLayerPath(layer) {
   return '/' + m[1].replace(/\\\//g, '/');
 }
 
-function createInterceptor(aggregator, db, config) {
+function createInterceptor(aggregator, storeRoutes, config) {
   const { env, release, service, sampling, ignorePaths } = config;
   const ignoreSet = new Set(ignorePaths);
 
@@ -50,7 +50,7 @@ function createInterceptor(aggregator, db, config) {
   function scanRoutes(app) {
     try {
       const routes = extractExpressRoutes(app._router);
-      if (routes.length > 0) db.upsertKnownRoutes(routes);
+      if (routes.length > 0) storeRoutes(routes);
     } catch (_) {
       // Non-critical — never crash the host app
     }

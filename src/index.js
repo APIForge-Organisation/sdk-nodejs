@@ -62,7 +62,11 @@ function apiforge(options = {}) {
     ? startDashboard(db, config.dashboardPort)
     : null;
 
-  const middleware = createInterceptor(aggregator, db, config);
+  const storeRoutes = isCloud
+    ? routes => transport.writeRoutes(routes)
+    : routes => db.upsertKnownRoutes(routes);
+
+  const middleware = createInterceptor(aggregator, storeRoutes, config);
 
   middleware.shutdown = () => {
     aggregator.stop();
