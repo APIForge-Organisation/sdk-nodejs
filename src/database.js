@@ -30,23 +30,32 @@ class ApiForgeDatabase {
       );
 
       CREATE TABLE IF NOT EXISTS api_metrics (
-        id          INTEGER PRIMARY KEY AUTOINCREMENT,
-        bucket_ts   INTEGER NOT NULL,
-        route       TEXT NOT NULL,
-        method      TEXT NOT NULL,
-        env         TEXT NOT NULL DEFAULT 'production',
-        release_tag TEXT,
-        status_2xx  INTEGER NOT NULL DEFAULT 0,
-        status_4xx  INTEGER NOT NULL DEFAULT 0,
-        status_5xx  INTEGER NOT NULL DEFAULT 0,
-        total_calls INTEGER NOT NULL DEFAULT 0,
-        lat_p50     REAL,
-        lat_p90     REAL,
-        lat_p99     REAL,
-        lat_min     REAL,
-        lat_max     REAL,
-        bytes_avg   REAL,
-        is_ghost    INTEGER NOT NULL DEFAULT 0
+        id               INTEGER PRIMARY KEY AUTOINCREMENT,
+        bucket_ts        INTEGER NOT NULL,
+        route            TEXT NOT NULL,
+        method           TEXT NOT NULL,
+        env              TEXT NOT NULL DEFAULT 'production',
+        release_tag      TEXT,
+        status_2xx       INTEGER NOT NULL DEFAULT 0,
+        status_3xx       INTEGER NOT NULL DEFAULT 0,
+        status_4xx       INTEGER NOT NULL DEFAULT 0,
+        status_5xx       INTEGER NOT NULL DEFAULT 0,
+        status_dist      TEXT,
+        total_calls      INTEGER NOT NULL DEFAULT 0,
+        lat_p50          REAL,
+        lat_p90          REAL,
+        lat_p99          REAL,
+        lat_avg          REAL,
+        lat_min          REAL,
+        lat_max          REAL,
+        lat_ttfb_p50     REAL,
+        lat_ttfb_p90     REAL,
+        lat_ttfb_p99     REAL,
+        bytes_avg        REAL,
+        request_size_avg REAL,
+        inflight_avg     REAL,
+        inflight_max     INTEGER,
+        is_ghost         INTEGER NOT NULL DEFAULT 0
       );
       CREATE INDEX IF NOT EXISTS idx_route_ts  ON api_metrics (route, method, bucket_ts);
       CREATE INDEX IF NOT EXISTS idx_bucket_ts ON api_metrics (bucket_ts);
@@ -54,15 +63,34 @@ class ApiForgeDatabase {
     `);
 
     // Migrations for databases created before these columns were introduced
-    try { this.db.exec('ALTER TABLE api_metrics ADD COLUMN bytes_avg REAL'); } catch (_) {}
-    try { this.db.exec('ALTER TABLE api_metrics ADD COLUMN is_ghost INTEGER NOT NULL DEFAULT 0'); } catch (_) {}
+    const migrations = [
+      'ALTER TABLE api_metrics ADD COLUMN bytes_avg REAL',
+      'ALTER TABLE api_metrics ADD COLUMN is_ghost INTEGER NOT NULL DEFAULT 0',
+      'ALTER TABLE api_metrics ADD COLUMN status_3xx INTEGER NOT NULL DEFAULT 0',
+      'ALTER TABLE api_metrics ADD COLUMN status_dist TEXT',
+      'ALTER TABLE api_metrics ADD COLUMN lat_avg REAL',
+      'ALTER TABLE api_metrics ADD COLUMN lat_ttfb_p50 REAL',
+      'ALTER TABLE api_metrics ADD COLUMN lat_ttfb_p90 REAL',
+      'ALTER TABLE api_metrics ADD COLUMN lat_ttfb_p99 REAL',
+      'ALTER TABLE api_metrics ADD COLUMN request_size_avg REAL',
+      'ALTER TABLE api_metrics ADD COLUMN inflight_avg REAL',
+      'ALTER TABLE api_metrics ADD COLUMN inflight_max INTEGER',
+    ];
+    for (const sql of migrations) {
+      try { this.db.exec(sql); } catch (_) {}
+    }
 
     this._stmtInsert = this.db.prepare(`
       INSERT INTO api_metrics
         (bucket_ts, route, method, env, release_tag,
-         status_2xx, status_4xx, status_5xx, total_calls,
-         lat_p50, lat_p90, lat_p99, lat_min, lat_max, bytes_avg, is_ghost)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         status_2xx, status_3xx, status_4xx, status_5xx, status_dist,
+         total_calls,
+         lat_p50, lat_p90, lat_p99, lat_avg, lat_min, lat_max,
+         lat_ttfb_p50, lat_ttfb_p90, lat_ttfb_p99,
+         bytes_avg, request_size_avg,
+         inflight_avg, inflight_max,
+         is_ghost)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     this._begin    = this.db.prepare('BEGIN');
@@ -76,8 +104,12 @@ class ApiForgeDatabase {
       for (const r of rows) {
         this._stmtInsert.run(
           r.bucket_ts, r.route, r.method, r.env, r.release_tag ?? null,
-          r.status_2xx, r.status_4xx, r.status_5xx, r.total_calls,
-          r.lat_p50, r.lat_p90, r.lat_p99, r.lat_min, r.lat_max, r.bytes_avg ?? null,
+          r.status_2xx, r.status_3xx ?? 0, r.status_4xx, r.status_5xx, r.status_dist ?? null,
+          r.total_calls,
+          r.lat_p50, r.lat_p90, r.lat_p99, r.lat_avg ?? null, r.lat_min, r.lat_max,
+          r.lat_ttfb_p50 ?? null, r.lat_ttfb_p90 ?? null, r.lat_ttfb_p99 ?? null,
+          r.bytes_avg ?? null, r.request_size_avg ?? null,
+          r.inflight_avg ?? null, r.inflight_max ?? null,
           r.is_ghost ?? 0
         );
       }
@@ -96,6 +128,7 @@ class ApiForgeDatabase {
       SELECT
         SUM(total_calls) as calls_total,
         SUM(status_2xx)  as calls_2xx,
+        SUM(status_3xx)  as calls_3xx,
         SUM(status_4xx)  as calls_4xx,
         SUM(status_5xx)  as calls_5xx,
         AVG(lat_p90)     as avg_p90,
@@ -131,15 +164,19 @@ class ApiForgeDatabase {
     return this.db.prepare(`
       SELECT
         route, method, is_ghost,
-        SUM(total_calls) as calls,
-        SUM(status_2xx)  as calls_2xx,
-        SUM(status_4xx)  as calls_4xx,
-        SUM(status_5xx)  as calls_5xx,
-        AVG(lat_p50)     as p50,
-        AVG(lat_p90)     as p90,
-        AVG(lat_p99)     as p99,
-        MAX(lat_max)     as lat_max,
-        AVG(bytes_avg)   as bytes_avg
+        SUM(total_calls)      as calls,
+        SUM(status_2xx)       as calls_2xx,
+        SUM(status_3xx)       as calls_3xx,
+        SUM(status_4xx)       as calls_4xx,
+        SUM(status_5xx)       as calls_5xx,
+        AVG(lat_p50)          as p50,
+        AVG(lat_p90)          as p90,
+        AVG(lat_p99)          as p99,
+        MAX(lat_max)          as lat_max,
+        AVG(bytes_avg)        as bytes_avg,
+        AVG(request_size_avg) as request_size_avg,
+        AVG(inflight_avg)     as inflight_avg,
+        MAX(inflight_max)     as inflight_max
       FROM api_metrics
       WHERE bucket_ts >= ?
       GROUP BY route, method, is_ghost
@@ -154,10 +191,11 @@ class ApiForgeDatabase {
       SELECT
         bucket_ts,
         SUM(total_calls) as calls,
-        AVG(lat_p50) as p50,
-        AVG(lat_p90) as p90,
-        AVG(lat_p99) as p99,
-        SUM(status_5xx) as errors
+        AVG(lat_p50)     as p50,
+        AVG(lat_p90)     as p90,
+        AVG(lat_p99)     as p99,
+        SUM(status_5xx)  as errors,
+        SUM(status_3xx)  as redirects
       FROM api_metrics
       WHERE route = ? AND method = ? AND bucket_ts >= ?
       GROUP BY bucket_ts

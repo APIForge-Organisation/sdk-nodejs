@@ -52,9 +52,12 @@ describe('apiforgejs — smoke tests', () => {
         method: 'GET',
         route: { path: '/health' },
         path: '/health',
+        headers: {},
         res: null,
       };
       const res = {
+        write: () => true,
+        end: () => true,
         on: (event, cb) => { if (event === 'finish') setTimeout(cb, 0); },
         statusCode: 200,
         getHeader: () => null,
