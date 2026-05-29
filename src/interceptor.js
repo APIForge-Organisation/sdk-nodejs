@@ -90,6 +90,7 @@ function createInterceptor(aggregator, storeRoutes, config) {
           release: release || null,
           service,
           response_size: contentLength ? parseInt(contentLength, 10) : null,
+          is_ghost: !req.route,
         });
       } catch (_) {
         // Never let instrumentation crash the host application

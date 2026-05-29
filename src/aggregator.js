@@ -23,7 +23,7 @@ class Aggregator {
   }
 
   record(event) {
-    const key = `${event.method}|${event.route}|${event.env}|${event.release || ''}`;
+    const key = `${event.method}|${event.route}|${event.env}|${event.release || ''}|${event.is_ghost ? '1' : '0'}`;
     let bucket = this.buffer.get(key);
 
     if (!bucket) {
@@ -32,6 +32,7 @@ class Aggregator {
         route: event.route,
         env: event.env,
         release: event.release,
+        is_ghost: event.is_ghost,
         durations: [],
         response_sizes: [],
         status_2xx: 0,
@@ -75,6 +76,7 @@ class Aggregator {
         method: bucket.method,
         env: bucket.env,
         release_tag: bucket.release,
+        is_ghost: bucket.is_ghost ? 1 : 0,
         status_2xx: bucket.status_2xx,
         status_4xx: bucket.status_4xx,
         status_5xx: bucket.status_5xx,
