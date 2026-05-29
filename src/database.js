@@ -45,22 +45,24 @@ class ApiForgeDatabase {
         lat_p99     REAL,
         lat_min     REAL,
         lat_max     REAL,
-        bytes_avg   REAL
+        bytes_avg   REAL,
+        is_ghost    INTEGER NOT NULL DEFAULT 0
       );
       CREATE INDEX IF NOT EXISTS idx_route_ts  ON api_metrics (route, method, bucket_ts);
       CREATE INDEX IF NOT EXISTS idx_bucket_ts ON api_metrics (bucket_ts);
       CREATE INDEX IF NOT EXISTS idx_release   ON api_metrics (release_tag) WHERE release_tag IS NOT NULL;
     `);
 
-    // Migration for databases created before bytes_avg was introduced
+    // Migrations for databases created before these columns were introduced
     try { this.db.exec('ALTER TABLE api_metrics ADD COLUMN bytes_avg REAL'); } catch (_) {}
+    try { this.db.exec('ALTER TABLE api_metrics ADD COLUMN is_ghost INTEGER NOT NULL DEFAULT 0'); } catch (_) {}
 
     this._stmtInsert = this.db.prepare(`
       INSERT INTO api_metrics
         (bucket_ts, route, method, env, release_tag,
          status_2xx, status_4xx, status_5xx, total_calls,
-         lat_p50, lat_p90, lat_p99, lat_min, lat_max, bytes_avg)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         lat_p50, lat_p90, lat_p99, lat_min, lat_max, bytes_avg, is_ghost)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     this._begin    = this.db.prepare('BEGIN');
@@ -75,7 +77,8 @@ class ApiForgeDatabase {
         this._stmtInsert.run(
           r.bucket_ts, r.route, r.method, r.env, r.release_tag ?? null,
           r.status_2xx, r.status_4xx, r.status_5xx, r.total_calls,
-          r.lat_p50, r.lat_p90, r.lat_p99, r.lat_min, r.lat_max, r.bytes_avg ?? null
+          r.lat_p50, r.lat_p90, r.lat_p99, r.lat_min, r.lat_max, r.bytes_avg ?? null,
+          r.is_ghost ?? 0
         );
       }
       this._commit.run();
@@ -97,22 +100,22 @@ class ApiForgeDatabase {
         SUM(status_5xx)  as calls_5xx,
         AVG(lat_p90)     as avg_p90,
         AVG(lat_p99)     as avg_p99
-      FROM api_metrics WHERE bucket_ts >= ?
+      FROM api_metrics WHERE bucket_ts >= ? AND is_ghost = 0
     `).get(since24h);
 
     const baseline = this.db.prepare(`
       SELECT AVG(lat_p90) as baseline_p90
-      FROM api_metrics WHERE bucket_ts >= ? AND bucket_ts < ?
+      FROM api_metrics WHERE bucket_ts >= ? AND bucket_ts < ? AND is_ghost = 0
     `).get(since7d, since24h);
 
     const activeRoutes = this.db.prepare(`
       SELECT COUNT(DISTINCT route || '|' || method) as n
-      FROM api_metrics WHERE bucket_ts >= ?
+      FROM api_metrics WHERE bucket_ts >= ? AND is_ghost = 0
     `).get(since24h);
 
     const totalRoutes = this.db.prepare(`
       SELECT COUNT(DISTINCT route || '|' || method) as n
-      FROM api_metrics
+      FROM api_metrics WHERE is_ghost = 0
     `).get();
 
     return {
@@ -127,7 +130,7 @@ class ApiForgeDatabase {
     const since = nowSec() - hours * 3600;
     return this.db.prepare(`
       SELECT
-        route, method,
+        route, method, is_ghost,
         SUM(total_calls) as calls,
         SUM(status_2xx)  as calls_2xx,
         SUM(status_4xx)  as calls_4xx,
@@ -139,9 +142,9 @@ class ApiForgeDatabase {
         AVG(bytes_avg)   as bytes_avg
       FROM api_metrics
       WHERE bucket_ts >= ?
-      GROUP BY route, method
-      ORDER BY calls DESC
-      LIMIT 50
+      GROUP BY route, method, is_ghost
+      ORDER BY is_ghost ASC, calls DESC
+      LIMIT 100
     `).all(since);
   }
 
@@ -167,6 +170,7 @@ class ApiForgeDatabase {
     return this.db.prepare(`
       SELECT route, method, MAX(bucket_ts) as last_seen
       FROM api_metrics
+      WHERE is_ghost = 0
       GROUP BY route, method
       HAVING last_seen < ?
       ORDER BY last_seen ASC
@@ -212,14 +216,14 @@ class ApiForgeDatabase {
     const recent = this.db.prepare(`
       SELECT route, method, AVG(lat_p99) as avg_p99
       FROM api_metrics
-      WHERE bucket_ts >= ?
+      WHERE bucket_ts >= ? AND is_ghost = 0
       GROUP BY route, method
     `).all(since1h);
 
     const baselineRows = this.db.prepare(`
       SELECT route, method, lat_p99
       FROM api_metrics
-      WHERE bucket_ts >= ? AND bucket_ts < ? AND lat_p99 IS NOT NULL
+      WHERE bucket_ts >= ? AND bucket_ts < ? AND lat_p99 IS NOT NULL AND is_ghost = 0
     `).all(since7d, since1h);
 
     return { recent, baselineRows };
@@ -300,7 +304,7 @@ class ApiForgeDatabase {
         CAST(bucket_ts / 86400 AS INTEGER) as day_bucket,
         AVG(lat_p90) as p90
       FROM api_metrics
-      WHERE bucket_ts >= ? AND lat_p90 IS NOT NULL
+      WHERE bucket_ts >= ? AND lat_p90 IS NOT NULL AND is_ghost = 0
       GROUP BY route, method, day_bucket
       ORDER BY route, method, day_bucket
     `).all(since30d);
@@ -317,7 +321,7 @@ class ApiForgeDatabase {
         AVG(lat_p99) as p99,
         SUM(status_5xx) as errors
       FROM api_metrics
-      WHERE bucket_ts >= ?
+      WHERE bucket_ts >= ? AND is_ghost = 0
       GROUP BY bucket_ts
       ORDER BY bucket_ts ASC
     `).all(since);

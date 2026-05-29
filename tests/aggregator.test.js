@@ -21,7 +21,7 @@ describe('Aggregator', () => {
       agg.record({ method: 'GET', route: '/a', env: 'test', release: null, status: 200, duration_ms: 20 });
       agg.record({ method: 'GET', route: '/a', env: 'test', release: null, status: 500, duration_ms: 30 });
 
-      const bucket = agg.buffer.get('GET|/a|test|');
+      const bucket = agg.buffer.get('GET|/a|test||0');
       assert.strictEqual(bucket.durations.length, 3);
       assert.strictEqual(bucket.status_2xx, 2);
       assert.strictEqual(bucket.status_5xx, 1);
