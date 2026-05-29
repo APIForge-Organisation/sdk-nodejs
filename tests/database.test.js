@@ -1,6 +1,6 @@
 'use strict';
 
-const { describe, it, before, after } = require('node:test');
+const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
 const { ApiForgeDatabase } = require('../src/database.js');
 
@@ -11,21 +11,31 @@ function makeDb() {
 // Insert one minimal row at a given timestamp
 function insertRow(db, overrides = {}) {
   const defaults = {
-    bucket_ts: Math.floor(Date.now() / 1000),
-    route: '/test',
-    method: 'GET',
-    env: 'test',
-    release_tag: null,
-    status_2xx: 1,
-    status_4xx: 0,
-    status_5xx: 0,
-    total_calls: 1,
-    lat_p50: 50,
-    lat_p90: 90,
-    lat_p99: 99,
-    lat_min: 10,
-    lat_max: 150,
-    bytes_avg: null,
+    bucket_ts:        Math.floor(Date.now() / 1000),
+    route:            '/test',
+    method:           'GET',
+    env:              'test',
+    release_tag:      null,
+    status_2xx:       1,
+    status_3xx:       0,
+    status_4xx:       0,
+    status_5xx:       0,
+    status_dist:      null,
+    total_calls:      1,
+    lat_p50:          50,
+    lat_p90:          90,
+    lat_p99:          99,
+    lat_avg:          70,
+    lat_min:          10,
+    lat_max:          150,
+    lat_ttfb_p50:     null,
+    lat_ttfb_p90:     null,
+    lat_ttfb_p99:     null,
+    bytes_avg:        null,
+    request_size_avg: null,
+    inflight_avg:     null,
+    inflight_max:     null,
+    is_ghost:         0,
   };
   db.insertBatch([{ ...defaults, ...overrides }]);
 }
@@ -79,6 +89,15 @@ describe('ApiForgeDatabase', () => {
       assert.strictEqual(recent.calls_5xx, 3);
       db.close();
     });
+
+    it('exposes calls_3xx in summary', () => {
+      const db = makeDb();
+      const nowTs = Math.floor(Date.now() / 1000);
+      insertRow(db, { status_2xx: 0, status_3xx: 4, total_calls: 4, bucket_ts: nowTs });
+      const { recent } = db.getSummary();
+      assert.strictEqual(recent.calls_3xx, 4);
+      db.close();
+    });
   });
 
   describe('getTimeSeries()', () => {
@@ -97,6 +116,15 @@ describe('ApiForgeDatabase', () => {
       insertRow(db, { route: '/other' });
       const rows = db.getTimeSeries('/missing', 'GET', 24);
       assert.strictEqual(rows.length, 0);
+      db.close();
+    });
+
+    it('includes redirects column in time series', () => {
+      const db = makeDb();
+      const ts = Math.floor(Date.now() / 1000) - 60;
+      insertRow(db, { route: '/redir', method: 'GET', bucket_ts: ts, status_3xx: 2 });
+      const rows = db.getTimeSeries('/redir', 'GET', 24);
+      assert.strictEqual(rows[0].redirects, 2);
       db.close();
     });
   });
@@ -215,6 +243,61 @@ describe('ApiForgeDatabase', () => {
       insertRow(db, { route: '/nosize', bytes_avg: null });
       const routes = db.getRoutes(24);
       assert.strictEqual(routes[0].bytes_avg, null);
+      db.close();
+    });
+  });
+
+  describe('new columns', () => {
+    it('stores and returns status_3xx', () => {
+      const db = makeDb();
+      insertRow(db, { route: '/redir', status_2xx: 0, status_3xx: 5, total_calls: 5 });
+      const routes = db.getRoutes(24);
+      assert.strictEqual(routes[0].calls_3xx, 5);
+      db.close();
+    });
+
+    it('stores and retrieves status_dist JSON', () => {
+      const db = makeDb();
+      const dist = JSON.stringify({ '200': 10, '201': 2 });
+      insertRow(db, { route: '/dist', status_dist: dist });
+      // Verify roundtrip via direct query
+      const row = db.db.prepare('SELECT status_dist FROM api_metrics LIMIT 1').get();
+      assert.strictEqual(row.status_dist, dist);
+      db.close();
+    });
+
+    it('stores and returns lat_avg', () => {
+      const db = makeDb();
+      insertRow(db, { route: '/avg', lat_avg: 42.5 });
+      const row = db.db.prepare('SELECT lat_avg FROM api_metrics LIMIT 1').get();
+      assert.strictEqual(row.lat_avg, 42.5);
+      db.close();
+    });
+
+    it('stores and returns lat_ttfb columns', () => {
+      const db = makeDb();
+      insertRow(db, { route: '/ttfb', lat_ttfb_p50: 12, lat_ttfb_p90: 25, lat_ttfb_p99: 40 });
+      const row = db.db.prepare('SELECT lat_ttfb_p50, lat_ttfb_p90, lat_ttfb_p99 FROM api_metrics LIMIT 1').get();
+      assert.strictEqual(row.lat_ttfb_p50, 12);
+      assert.strictEqual(row.lat_ttfb_p90, 25);
+      assert.strictEqual(row.lat_ttfb_p99, 40);
+      db.close();
+    });
+
+    it('stores and returns request_size_avg in getRoutes()', () => {
+      const db = makeDb();
+      insertRow(db, { route: '/upload', request_size_avg: 1024 });
+      const routes = db.getRoutes(24);
+      assert.strictEqual(routes[0].request_size_avg, 1024);
+      db.close();
+    });
+
+    it('stores and returns inflight_avg and inflight_max in getRoutes()', () => {
+      const db = makeDb();
+      insertRow(db, { route: '/busy', inflight_avg: 4.5, inflight_max: 8 });
+      const routes = db.getRoutes(24);
+      assert.strictEqual(routes[0].inflight_avg, 4.5);
+      assert.strictEqual(routes[0].inflight_max, 8);
       db.close();
     });
   });

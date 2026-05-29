@@ -46,6 +46,7 @@ function createInterceptor(aggregator, storeRoutes, config) {
   const ignoreSet = new Set(ignorePaths);
 
   let routesScanned = false;
+  let inflightCount = 0;
 
   function scanRoutes(app) {
     try {
@@ -68,8 +69,36 @@ function createInterceptor(aggregator, storeRoutes, config) {
     if (sampling < 1.0 && Math.random() > sampling) return next();
 
     const startHr = process.hrtime.bigint();
+    inflightCount++;
+    const inflightSnapshot = inflightCount;
+
+    // Request body size — size only, never the content
+    const requestSize = req.headers['content-length']
+      ? parseInt(req.headers['content-length'], 10)
+      : null;
+
+    // Patch res.write / res.end to capture Time To First Byte
+    let ttfbMs = null;
+    const origWrite = res.write.bind(res);
+    const origEnd   = res.end.bind(res);
+
+    function captureTtfb() {
+      if (ttfbMs === null) {
+        ttfbMs = Number(process.hrtime.bigint() - startHr) / 1_000_000;
+      }
+    }
+
+    res.write = function patchedWrite(...args) {
+      captureTtfb();
+      return origWrite(...args);
+    };
+    res.end = function patchedEnd(...args) {
+      captureTtfb();
+      return origEnd(...args);
+    };
 
     res.on('finish', () => {
+      inflightCount--;
       try {
         const durationMs = Number(process.hrtime.bigint() - startHr) / 1_000_000;
 
@@ -85,12 +114,15 @@ function createInterceptor(aggregator, storeRoutes, config) {
           method: req.method,
           status: res.statusCode,
           duration_ms: durationMs,
+          ttfb_ms: ttfbMs ?? durationMs,
           timestamp: new Date().toISOString(),
           env,
           release: release || null,
           service,
           response_size: contentLength ? parseInt(contentLength, 10) : null,
+          request_size: requestSize,
           is_ghost: !req.route,
+          inflight: inflightSnapshot,
         });
       } catch (_) {
         // Never let instrumentation crash the host application
