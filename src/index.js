@@ -16,8 +16,7 @@ const { startDashboard }    = require('./dashboard');
  * @param {string}   [options.apiKey]        - Cloud mode: project API key (af_…).
  * @param {string}   [options.dbPath]        - Local mode: SQLite path. Default: '.apiforge.db'.
  * @param {number}   [options.dashboardPort] - Local mode: dashboard port. Default: 4242. 0 = off.
- * @param {number}   [options.flushInterval] - Flush interval in ms. Default: 60000.
- * @param {string}   [options.env]           - Environment label. Default: NODE_ENV or 'production'.
+ * @param {string}   [options.env]           - Environment label. Default: 'production'.
  * @param {string}   [options.release]       - Release/version tag.
  * @param {string}   [options.service]       - Service name. Default: 'default'.
  * @param {number}   [options.sampling]      - Sample rate 0.0–1.0. Default: 1.0.
@@ -38,9 +37,8 @@ function apiforge(options = {}) {
     apiKey:        options.apiKey   ?? null,
     dbPath:        options.dbPath   ?? '.apiforge.db',
     dashboardPort: isCloud ? 0 : (options.dashboardPort !== undefined ? options.dashboardPort : 4242),
-    flushInterval: options.flushInterval ?? 60_000,
-    env:           options.env ?? process.env.NODE_ENV ?? 'production',
-    release:       options.release ?? process.env.APP_VERSION ?? null,
+    env:           options.env     ?? 'production',
+    release:       options.release ?? null,
     service:       options.service ?? 'default',
     sampling:      options.sampling ?? 1.0,
     ignorePaths:   options.ignorePaths ?? ['/favicon.ico'],
@@ -55,7 +53,7 @@ function apiforge(options = {}) {
     transport = new LocalTransport(db);
   }
 
-  const aggregator = new Aggregator(transport, config.flushInterval);
+  const aggregator = new Aggregator(transport, 60_000);
   aggregator.start();
 
   const dashboardServer = (!isCloud && config.dashboardPort)

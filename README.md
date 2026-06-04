@@ -38,7 +38,7 @@ app.listen(3000, () => {
 
 ## Dashboard
 
-Open **http://localhost:4242** after starting your app. The dashboard shows:
+Open **http://localhost:4242** after starting your app. No configuration needed — the dashboard server starts automatically in the background.
 
 - **Health Score** (0–100) — global API health at a glance
 - **Latency percentiles** — P50 / P90 / P99 per route
@@ -46,7 +46,7 @@ Open **http://localhost:4242** after starting your app. The dashboard shows:
 - **Automatic insights** — latency anomalies, dead endpoints, release regressions
 - **Time series chart** — click any route to see its latency over time
 
-Data is collected locally in `.apiforge.db` (SQLite). Nothing leaves your machine.
+Data is stored locally in `.apiforge.db` (SQLite). Nothing leaves your machine.
 
 ## Configuration
 
@@ -54,15 +54,30 @@ Data is collected locally in `.apiforge.db` (SQLite). Nothing leaves your machin
 app.use(apiforge({
   mode:          'local',
   dbPath:        '.apiforge.db',
-  dashboardPort: 4242,             // set to 0 to disable
-  flushInterval: 60_000,           // flush to SQLite every 60s (ms)
-  env:           process.env.NODE_ENV,
-  release:       process.env.APP_VERSION,
+  dashboardPort: 4242,           // set to 0 to disable
+  env:           'production',
+  release:       'v1.4.0',
   service:       'my-api',
-  sampling:      1.0,              // 0.0–1.0 sample rate
+  sampling:      1.0,            // 0.0–1.0 sample rate
   ignorePaths:   ['/health', '/ping'],
 }));
 ```
+
+## Cloud mode
+
+Send metrics to the APIForge SaaS platform instead of storing them locally:
+
+```javascript
+app.use(apiforge({
+  cloudUrl: process.env.APIFORGE_CLOUD_URL,
+  apiKey:   process.env.APIFORGE_API_KEY,
+  service:  'my-api',
+  env:      process.env.NODE_ENV,
+  release:  process.env.APP_VERSION,
+}));
+```
+
+In cloud mode, metrics are aggregated in memory for 60 seconds and sent as a single batch — the local dashboard and SQLite database are not used.
 
 ## Release tracking
 
@@ -70,12 +85,25 @@ Pass your release version to enable before/after deployment comparison:
 
 ```javascript
 app.use(apiforge({
-  mode: 'local',
+  mode:    'local',
   release: process.env.npm_package_version,
 }));
 ```
 
-When a new release is detected, APIForge compares P90 latency before vs. after and surfaces regressions as insights automatically.
+When a new release is detected, APIForge compares P90 latency before and after and surfaces regressions automatically.
+
+## What you get
+
+- **Per-route latency** — P50, P90, P99 per endpoint, updated every 60 s
+- **Error rate by route** — 2xx / 3xx / 4xx / 5xx breakdown
+- **API Health Score** — a single 0–100 score summarising your API's health
+- **Ghost route detection** — requests that hit no declared Express route
+- **Latency anomaly alerts** — Z-score detection against a 7-day baseline
+- **Dead endpoint detection** — routes with no traffic for 21+ days
+- **Release regression analysis** — automatic P90 comparison per deploy
+- **Progressive drift detection** — slow latency increases over weeks
+- **Untracked route detection** — declared routes that never received traffic
+- **Inflight concurrency tracking** — `inflight_avg` and `inflight_max` per route
 
 ## Graceful shutdown
 
@@ -84,7 +112,7 @@ const forge = apiforge({ mode: 'local' });
 app.use(forge);
 
 process.on('SIGTERM', () => {
-  forge.shutdown();
+  forge.shutdown(); // flushes buffer, closes dashboard, closes SQLite
   process.exit(0);
 });
 ```
