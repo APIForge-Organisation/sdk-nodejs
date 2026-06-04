@@ -54,12 +54,11 @@ Data is stored locally in `.apiforge.db` (SQLite). Nothing leaves your machine.
 app.use(apiforge({
   mode:          'local',
   dbPath:        '.apiforge.db',
-  dashboardPort: 4242,             // set to 0 to disable
-  flushInterval: 60_000,           // aggregate and flush every 60s (ms)
-  env:           process.env.NODE_ENV,
-  release:       process.env.APP_VERSION,
+  dashboardPort: 4242,           // set to 0 to disable
+  env:           'production',
+  release:       'v1.4.0',
   service:       'my-api',
-  sampling:      1.0,              // 0.0–1.0 sample rate
+  sampling:      1.0,            // 0.0–1.0 sample rate
   ignorePaths:   ['/health', '/ping'],
 }));
 ```
