@@ -8,10 +8,38 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — versioning 
 
 ## [Unreleased]
 
+---
+
+## [3.0.0] — 2026-06-04
+
+### Breaking Changes
+
+- `flushInterval` option **removed** — the flush window is now fixed at **60 seconds** and cannot be overridden. Remove any `flushInterval` value from your `apiforge({})` call.
+- `env` no longer falls back to `process.env.NODE_ENV` — must be passed explicitly. Default is now `'production'`.
+- `release` no longer falls back to `process.env.APP_VERSION` — must be passed explicitly. Default is now `null`.
+
 ### Added
 
 - `bytes_avg` field: average response body size (bytes) per route per bucket, sourced from the `Content-Length` response header — stored in SQLite and exposed via `/api/routes`
-- 4 unit tests covering `bytes_avg` aggregation and storage
+- `inflight_avg` and `inflight_max` per route — approximate concurrent request count captured at each request and aggregated per minute bucket
+- `status_3xx` counter tracked and stored in every aggregation bucket
+
+### Migration guide
+
+```js
+// Before (v2.x)
+app.use(apiforge({
+  flushInterval: 30_000,                    // ← remove
+  env: process.env.NODE_ENV,                // ← pass explicitly
+  release: process.env.npm_package_version, // ← still OK (your app reads the env var)
+}))
+
+// After (v3.0)
+app.use(apiforge({
+  env:     'production',   // set explicitly
+  release: 'v1.4.0',       // set explicitly
+}))
+```
 
 ---
 
