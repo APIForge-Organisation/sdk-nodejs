@@ -18,8 +18,9 @@
   "author": "APIForge",
   "license": "MIT",
   "scripts": {
-    "tests": "node --test tests/**/*.test.js",
-    "test:smoke": "node --test tests/smoke.test.js"
+    "test": "node --test tests/**/*.test.js",
+    "test:smoke": "node --test tests/smoke.test.js",
+    "lint": "eslint ."
   },
   "engines": {
     "node": ">=22.5.0"
@@ -38,5 +39,10 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/APIForge-Organisation/sdk-nodejs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.6.0",
+    "globals": "^16.5.0"
   }
 }
