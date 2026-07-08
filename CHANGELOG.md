@@ -10,6 +10,22 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) — versioning 
 
 ---
 
+## [4.0.0] — 2026-07-08
+
+### Breaking Changes
+
+- **Cloud mode now sends the `X-APIForge-Key` header instead of `X-API-Key`**, matching the saas-api rename (CDC §8.4.1). Cloud ingest against the current APIForge API **requires** this version — 3.x and earlier send the old header and are rejected with `401`. The header is internal to the SDK, so no code change is needed on your side beyond upgrading.
+
+### Migration guide
+
+```bash
+npm install apiforgejs@^4.0.0
+```
+
+No configuration change is required — the header is set internally by `CloudTransport`. Upgrade any service running the SDK in cloud mode.
+
+---
+
 ## [3.0.0] — 2026-06-04
 
 ### Breaking Changes

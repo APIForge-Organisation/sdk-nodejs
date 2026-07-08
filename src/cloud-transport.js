@@ -21,7 +21,7 @@ class CloudTransport {
     if (routes.length === 0) return;
     fetch(`${this._url}/routes`, {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json', 'X-API-Key': this._apiKey },
+      headers: { 'Content-Type': 'application/json', 'X-APIForge-Key': this._apiKey },
       body:    JSON.stringify({
         routes: routes.map(r => ({ route: r.route, method: r.method, service: this._service })),
       }),
@@ -63,7 +63,7 @@ class CloudTransport {
 
     fetch(this._url, {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json', 'X-API-Key': this._apiKey },
+      headers: { 'Content-Type': 'application/json', 'X-APIForge-Key': this._apiKey },
       body:    JSON.stringify({ metrics }),
     })
       .then(res => {

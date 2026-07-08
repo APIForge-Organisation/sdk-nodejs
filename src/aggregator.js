@@ -1,7 +1,12 @@
 'use strict';
 
+// Fixed 60s send cadence — not configurable through the public API. The SDK only
+// protects against misconfiguration; real ingest throttling is enforced server-side
+// (per-key rate limit + monthly quota). See index.js and CloudTransport.
+const FLUSH_INTERVAL_MS = 60_000;
+
 class Aggregator {
-  constructor(transport, flushIntervalMs = 60_000) {
+  constructor(transport, flushIntervalMs = FLUSH_INTERVAL_MS) {
     this.transport = transport;
     this.flushIntervalMs = flushIntervalMs;
     this.buffer = new Map();
@@ -145,4 +150,4 @@ function percentile(sorted, p) {
   return sorted[Math.max(0, idx)];
 }
 
-module.exports = { Aggregator };
+module.exports = { Aggregator, FLUSH_INTERVAL_MS };
