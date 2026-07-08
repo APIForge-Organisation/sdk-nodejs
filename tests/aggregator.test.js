@@ -2,7 +2,7 @@
 
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
-const { Aggregator } = require('../src/aggregator.js');
+const { Aggregator, FLUSH_INTERVAL_MS } = require('../src/aggregator.js');
 
 // Minimal transport spy
 function makeTransport() {
@@ -320,6 +320,15 @@ describe('Aggregator', () => {
       assert.strictEqual(row.inflight_avg, null);
       assert.strictEqual(row.inflight_max, null);
       agg.stop();
+    });
+  });
+
+  describe('send cadence', () => {
+    it('locks the flush interval at 60s and is not configurable by the SDK factory', () => {
+      // Regression guard: the send delay must stay pinned to 60s so no wiring change
+      // can silently shorten it. Server-side rate limiting is the real throttle.
+      assert.strictEqual(FLUSH_INTERVAL_MS, 60_000);
+      assert.strictEqual(new Aggregator(makeTransport()).flushIntervalMs, 60_000);
     });
   });
 

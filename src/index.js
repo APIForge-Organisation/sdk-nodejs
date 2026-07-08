@@ -1,7 +1,7 @@
 'use strict';
 
 const { createInterceptor } = require('./interceptor');
-const { Aggregator }        = require('./aggregator');
+const { Aggregator, FLUSH_INTERVAL_MS } = require('./aggregator');
 const { LocalTransport }    = require('./transport');
 const { CloudTransport }    = require('./cloud-transport');
 const { ApiForgeDatabase }  = require('./database');
@@ -53,7 +53,7 @@ function apiforge(options = {}) {
     transport = new LocalTransport(db);
   }
 
-  const aggregator = new Aggregator(transport, 60_000);
+  const aggregator = new Aggregator(transport, FLUSH_INTERVAL_MS);
   aggregator.start();
 
   const dashboardServer = (!isCloud && config.dashboardPort)
