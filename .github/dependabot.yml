@@ -1,0 +1,18 @@
+version: 2
+updates:
+  # A published library: runtime dependencies are the users' problem too, so a
+  # production bump gets its own PR rather than being grouped away.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      development:
+        dependency-type: development
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
